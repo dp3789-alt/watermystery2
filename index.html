@@ -1,0 +1,1670 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0b0c0f">
+<title>물때 2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+/* 레이아웃: 위 상태줄 / 가운데 원룸(왼쪽 표적 프로필) / 아래 가방. 프롤로그는 1편처럼 화면 가운데 핸드폰. */
+:root {
+  --ink: #0b0c0f;
+  --room: #15171c;
+  --line: #2a2d35;
+  --fg: #e7e4dd;
+  --muted: #8d919b;
+  --paper: #e6e0d2;
+  --paper-ink: #24211c;
+  --blood: #c0393f;
+  --pale: #9dbbd0;
+  --f-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --f-verdict: "Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
+  --f-hand: "Nanum Pen Script", "Nanum Pen", cursive;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--fg); font-family: var(--f-ui); font-size: 15px; line-height: 1.6; overflow: hidden; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--pale); outline-offset: 2px; }
+input { font: inherit; }
+[hidden] { display: none !important; }
+#app { height: 100%; display: flex; flex-direction: column; }
+
+.title-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center;
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px));
+  background: radial-gradient(ellipse at 50% 35%, #1b1d24 0%, var(--ink) 65%); }
+.title-screen h1 { font-family: var(--f-verdict); font-weight: 800; font-size: clamp(52px, 14vw, 96px); letter-spacing: .18em; margin: 0; line-height: 1.1; padding-left: .18em; }
+.title-screen h1 span { color: var(--blood); }
+.title-screen .sub { font-family: var(--f-verdict); font-size: 19px; letter-spacing: .5em; color: var(--muted); margin: 0 0 4px; padding-left: .5em; }
+.title-screen .period { font-size: 13px; color: var(--muted); margin-bottom: 30px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-width: 220px; padding: 13px 22px; border-radius: 4px; border: 1px solid #3a3e48; background: #181a20; font-size: 15px; letter-spacing: .04em; }
+.btn:hover { border-color: #5a5f6b; background: #1e2129; }
+.btn:disabled { opacity: .35; cursor: default; }
+.btn.red { border-color: #6d2226; background: #2a1114; color: #f1c9cb; }
+.btn.red:hover { background: #3a161a; }
+.title-screen .tip { font-size: 12px; color: var(--muted); opacity: .75; margin-top: 22px; line-height: 1.8; max-width: 34em; }
+.title-screen .stack { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+
+.top { display: flex; align-items: center; gap: 10px; min-height: 50px; border-bottom: 1px solid var(--line); background: #0f1014;
+  padding-block: 6px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top .when { font-variant-numeric: tabular-nums; font-size: 14px; white-space: nowrap; }
+.top .chap { font-family: var(--f-verdict); font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.top .who { margin-left: auto; font-size: 12px; letter-spacing: .08em; padding: 3px 9px; border: 1px solid #3a3e48; border-radius: 99px; white-space: nowrap; }
+.top .who.judge { border-color: #6d2226; color: #f1c9cb; }
+.top .tb { position: relative; padding: 6px 9px; border-radius: 4px; font-size: 13px; color: #c9ccd3; white-space: nowrap; }
+.top .tb:hover { background: #1c1e25; }
+.top .tb .dot { position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--blood); }
+.top .tb.buzz { animation: buzz .5s 3; }
+@keyframes buzz { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-2px) rotate(-3deg) } 75% { transform: translateX(2px) rotate(3deg) } }
+.only-narrow { display: none; }
+
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); }
+.profile { min-width: 0; overflow-y: auto; border-right: 1px solid var(--line); background: var(--room); padding: 18px 18px 24px; }
+.profile h2 { font-family: var(--f-verdict); font-size: 22px; margin: 4px 0 2px; letter-spacing: .04em; text-wrap: balance; }
+.profile .eyebrow { font-size: 11px; letter-spacing: .14em; color: var(--blood); }
+.profile .photo { width: 100%; aspect-ratio: 16/9; max-width: 100%; border-radius: 3px; overflow: hidden; background: #0d0e12; margin: 10px 0 12px; border: 1px solid var(--line); }
+.profile .photo svg { width: 100%; height: 100%; display: block; }
+.profile dl { margin: 0; display: grid; gap: 12px; }
+.profile dt { font-size: 11px; letter-spacing: .12em; color: var(--muted); }
+.profile dd { margin: 2px 0 0; font-size: 14px; line-height: 1.65; white-space: pre-line; }
+.profile .han { margin-top: 16px; padding: 12px 14px; background: #101216; border-left: 2px solid #4b5160; font-size: 13.5px; white-space: pre-line; }
+.profile .han b { display: block; font-size: 11px; letter-spacing: .12em; color: var(--muted); font-weight: 500; margin-bottom: 4px; }
+.profile .log { display: grid; gap: 8px; margin-top: 10px; }
+.profile .log div { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.profile .log .done { color: var(--blood); font-family: var(--f-verdict); }
+.profile .empty { color: var(--muted); font-size: 14px; }
+
+.roomwrap { position: relative; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; background: #08090b; overflow: hidden; }
+.roomwrap svg.room { width: 100%; height: 100%; display: block; }
+.hot { cursor: pointer; }
+.hot .hl { fill: transparent; stroke: transparent; stroke-width: 3; transition: stroke .15s; }
+.hot:hover .hl, .hot:focus .hl { stroke: rgba(220, 226, 236, .55); }
+.hot:focus { outline: none; }
+.lab { font-family: var(--f-ui); font-size: 15px; fill: #d4d8df; opacity: .62; pointer-events: none; paint-order: stroke; stroke: #0b0c0f; stroke-width: 4px; }
+.hot:hover .lab { opacity: 1; }
+.hand-svg { font-family: var(--f-hand); }
+.ver-svg { font-family: var(--f-verdict); }
+.phone-glow { animation: glow 1.2s infinite alternate; }
+@keyframes glow { from { opacity: .25 } to { opacity: 1 } }
+
+.bottom { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line); background: #0f1014;
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.bag { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; flex: 1; }
+.bag .bl { font-size: 12px; color: var(--muted); letter-spacing: .1em; margin-right: 2px; }
+.slot { min-width: 92px; height: 38px; padding: 0 10px; border: 1px dashed #3a3e48; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); }
+.slot.full { border-style: solid; border-color: #5a5f6b; color: var(--fg); background: #181a20; }
+.slot.full:hover { border-color: var(--blood); }
+.bottom .go { margin-left: auto; }
+.bottom .hint { font-size: 13px; color: var(--muted); flex: 1; min-width: 0; }
+
+.ov { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(4,5,7,.78);
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.card { width: min(560px, 100%); max-height: 100%; overflow-y: auto; background: var(--room); border: 1px solid var(--line); border-radius: 6px; padding: 20px 20px 18px; }
+.card h3 { margin: 0 0 4px; font-family: var(--f-verdict); font-size: 21px; display: flex; align-items: center; gap: 10px; }
+.card h3 .x { margin-left: auto; font-family: var(--f-ui); font-size: 14px; color: var(--muted); padding: 4px 8px; }
+.card .desc { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+.entries { display: grid; gap: 10px; }
+.entry { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 4px; background: #111317; }
+.entry .et { flex: 1; min-width: 0; }
+.entry .et b { font-weight: 500; display: block; }
+.entry .et small { color: var(--muted); font-size: 13px; display: block; line-height: 1.5; }
+.entry .eb { font-size: 13px; padding: 7px 12px; border: 1px solid #3a3e48; border-radius: 4px; white-space: nowrap; }
+.entry .eb:hover { border-color: #6a707d; }
+.entry .eb.on { border-color: #6d2226; color: #f1c9cb; }
+.entry.locked { border-color: #3b2a2c; background: #141012; }
+.entry.txt { border: 0; background: none; padding: 0 2px; color: #c7cad1; font-size: 14px; }
+.kind { font-size: 11px; letter-spacing: .1em; color: var(--muted); width: 34px; flex: none; text-align: center; }
+
+.doc { margin-top: 4px; padding: 22px 22px 20px; border-radius: 2px; white-space: pre-line; line-height: 1.85; font-size: 15px; }
+.doc.paper { background: var(--paper); color: var(--paper-ink); }
+.doc.hand { background: #efe4a6; color: #2b2a22; font-family: var(--f-hand); font-size: 25px; line-height: 1.35; }
+.doc.print { background: #dcdad4; color: #1f1f1f; font-variant-numeric: tabular-nums; }
+.doc.verdict { background: var(--paper); color: var(--paper-ink); font-family: var(--f-verdict); }
+.doc.plain { background: #101216; color: var(--fg); border: 1px solid var(--line); }
+.doc .hi { font-family: var(--f-hand); font-size: 24px; line-height: 1.3; color: #2c4a73; }
+.cc { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 10px 0 14px; white-space: normal; }
+.cc div { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 13px; line-height: 1.4; }
+.cc i { width: 100%; height: 14px; border-radius: 2px; border: 1px solid rgba(0,0,0,.25); }
+.backlink { margin-top: 14px; }
+
+.lock-note { font-family: var(--f-hand); font-size: 26px; line-height: 1.3; color: #2b2a22; background: #efe4a6; padding: 14px 18px; border-radius: 2px; white-space: pre-line; transform: rotate(-.6deg); }
+.digits { display: flex; justify-content: center; gap: 10px; margin: 18px 0 12px; }
+.digits span { width: 46px; height: 58px; border: 1px solid #4a4f5b; border-radius: 4px; background: #0d0e12; display: flex; align-items: center; justify-content: center; font-size: 28px; font-variant-numeric: tabular-nums; }
+.digits.bad { animation: buzz .4s 2; }
+.digits.bad span { border-color: var(--blood); }
+.pad { display: grid; grid-template-columns: repeat(3, minmax(0, 72px)); gap: 8px; justify-content: center; }
+.pad button { height: 48px; border: 1px solid #3a3e48; border-radius: 4px; background: #181a20; font-size: 19px; font-variant-numeric: tabular-nums; }
+.pad button:hover { background: #20232b; }
+.pad .wide { font-size: 14px; }
+.txtlock { display: flex; gap: 8px; margin: 18px 0 6px; }
+.txtlock input { flex: 1; min-width: 0; padding: 12px; background: #0d0e12; border: 1px solid #4a4f5b; border-radius: 4px; color: var(--fg); font-size: 18px; }
+.strips { display: grid; gap: 8px; margin: 14px 0; }
+.strip { text-align: left; padding: 10px 14px; background: #e9e2cd; color: #2b2a22; border-radius: 2px; font-family: var(--f-hand); font-size: 23px; line-height: 1.2;
+  clip-path: polygon(0 8%, 6% 0, 14% 10%, 25% 2%, 38% 9%, 52% 0, 63% 8%, 77% 1%, 88% 9%, 100% 3%, 100% 92%, 91% 100%, 80% 91%, 66% 99%, 51% 92%, 37% 100%, 24% 91%, 11% 99%, 0 93%); }
+.strip.used { opacity: .25; pointer-events: none; }
+.placed { min-height: 46px; border: 1px dashed #3a3e48; border-radius: 4px; padding: 8px; display: grid; gap: 6px; }
+.placed .strip { pointer-events: none; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.res-row { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin: 14px 0 6px; }
+.res-row svg { width: 110px; height: 32px; }
+
+.phone-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 30%, #1a1b24, var(--ink) 70%);
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
+.phone { position: relative; width: min(390px, 100%); height: min(800px, 100%); background: #0b0b10; border-radius: 40px; overflow: hidden; display: flex; flex-direction: column;
+  box-shadow: 0 0 0 9px #1d1d24, 0 0 0 11px #34343f, 0 30px 80px rgba(0,0,0,.7); }
+.ph-status { height: 38px; flex: none; display: flex; align-items: flex-end; padding: 0 24px 4px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ph-status span:last-child { margin-left: auto; font-size: 11px; opacity: .8; font-weight: 500; }
+.ph-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.ph-home { flex: 1; padding: 16px 16px 18px; display: flex; flex-direction: column; background: linear-gradient(170deg, #1a2133 0%, #221d2e 60%, #2b1f27 100%); }
+.ph-home.judge { background: linear-gradient(170deg, #17171b 0%, #1c1415 70%, #2a1315 100%); }
+.widget { background: rgba(255,255,255,.08); border-radius: 20px; padding: 16px 18px; margin-bottom: 22px; }
+.widget .big { font-size: 40px; font-weight: 300; letter-spacing: -1px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.widget .small { font-size: 14px; opacity: .8; }
+.apps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 6px; }
+.app { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11.5px; position: relative; }
+.app .ic { width: min(56px, 100%); aspect-ratio: 1; border-radius: 26%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,.3); }
+.app .ic svg { width: 54%; height: 54%; }
+.badge { position: absolute; top: -5px; right: max(0px, calc(50% - 34px)); min-width: 20px; height: 20px; border-radius: 10px; background: #ff3b30; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+.ph-home .spacer { flex: 1; min-height: 24px; }
+.timebtn { width: 100%; padding: 14px; border-radius: 16px; background: rgba(255,255,255,.12); font-size: 15px; }
+.timebtn.red { background: rgba(192,57,63,.28); color: #ffdadc; }
+.timebtn + .timebtn { margin-top: 8px; }
+.ph-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #1f2027; flex: none; }
+.ph-head button { font-size: 15px; color: #8fb4ff; padding: 4px 6px; }
+.ph-head b { font-weight: 600; font-size: 15px; flex: 1; text-align: center; margin-right: 46px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph-row { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 12px 14px; border-bottom: 1px solid #17181e; width: 100%; }
+.ph-row:hover { background: #121319; }
+.ph-row .t { flex: 1; min-width: 0; }
+.ph-row .t b { display: block; font-weight: 500; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph-row .t small { display: block; color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph-row .d { font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ph-row .u { width: 8px; height: 8px; border-radius: 50%; background: #3d8bff; margin-top: 7px; flex: none; }
+.ph-row .u.r { background: transparent; }
+.ph-empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+.chat { padding: 12px 12px 18px; display: flex; flex-direction: column; gap: 6px; }
+.chat .day { align-self: center; font-size: 11.5px; color: var(--muted); margin: 10px 0 4px; }
+.bub { max-width: 80%; padding: 8px 12px; border-radius: 16px; font-size: 14.5px; line-height: 1.5; white-space: pre-line; background: #24252d; align-self: flex-start; }
+.bub.me { align-self: flex-end; background: #2c5bd1; }
+.bub small { display: block; font-size: 10.5px; opacity: .55; margin-top: 2px; }
+.article { padding: 16px 16px 26px; }
+.article .press { font-size: 12px; color: var(--muted); }
+.article h4 { font-size: 19px; line-height: 1.45; margin: 6px 0 12px; text-wrap: balance; }
+.article p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.75; color: #d6d4cf; white-space: pre-line; }
+.article .cmts { margin-top: 14px; border-top: 1px solid #1f2027; padding-top: 10px; display: grid; gap: 8px; }
+.article .cmt { font-size: 13.5px; color: #c4c6cc; padding: 8px 10px; background: #131419; border-radius: 8px; }
+.article .cmt small { color: var(--muted); display: block; font-size: 11.5px; }
+.mailbody { padding: 16px; white-space: pre-line; font-size: 14.5px; line-height: 1.75; }
+.phone-ov { position: fixed; inset: 0; z-index: 25; background: rgba(4,5,7,.72); display: flex; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.phone-ov .phone { height: min(760px, 100%); }
+
+#notif { position: fixed; z-index: 40; top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: min(380px, calc(100% - 32px)); display: grid; gap: 8px; pointer-events: none; }
+.nt { pointer-events: auto; text-align: left; width: 100%; display: flex; gap: 10px; padding: 11px 14px; border-radius: 16px; background: rgba(36,38,46,.96); box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: drop .3s ease-out; transition: opacity .5s; }
+.nt.fade { opacity: 0; }
+.nt .ni { width: 34px; height: 34px; border-radius: 9px; flex: none; display: flex; align-items: center; justify-content: center; }
+.nt .ni svg { width: 60%; height: 60%; }
+.nt .nb { flex: 1; min-width: 0; }
+.nt .nb b { font-size: 13px; font-weight: 600; display: flex; gap: 6px; }
+.nt .nb b em { font-style: normal; font-weight: 400; color: var(--muted); margin-left: auto; font-size: 11.5px; }
+.nt .nb div { font-size: 13.5px; line-height: 1.45; color: #d8d9de; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes drop { from { transform: translateY(-16px); opacity: 0 } to { transform: none; opacity: 1 } }
+
+#voice { position: fixed; z-index: 35; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: min(640px, calc(100% - 32px)); display: grid; gap: 6px; pointer-events: none; }
+.vl { padding: 10px 16px; border-radius: 4px; background: rgba(10,11,14,.94); border-left: 3px solid var(--muted); font-size: 15px; animation: drop .3s ease-out; transition: opacity .6s; }
+.vl.v1 { border-color: var(--pale); color: #cfe0ec; font-family: var(--f-hand); font-size: 23px; line-height: 1.25; }
+.vl.v2 { border-color: var(--blood); color: #f0c6c8; }
+.vl.fade { opacity: 0; }
+.vlog { display: grid; gap: 8px; }
+.vlog div { padding: 8px 12px; border-left: 3px solid var(--muted); background: #111317; font-size: 14px; }
+.vlog .v1 { border-color: var(--pale); font-family: var(--f-hand); font-size: 21px; line-height: 1.3; color: #cfe0ec; }
+.vlog .v2 { border-color: var(--blood); color: #f0c6c8; }
+
+#narr { position: fixed; inset: 0; z-index: 50; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; overflow-y: auto;
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+#narr .nl { width: min(620px, 100%); display: flex; flex-direction: column; gap: 14px; }
+#narr .ln { font-size: 17px; line-height: 1.8; color: #dad7d0; animation: fadein .7s ease-out; }
+#narr .ln.old { opacity: .38; transition: opacity .6s; }
+#narr .ln.v1 { font-family: var(--f-hand); font-size: 27px; line-height: 1.3; color: var(--pale); }
+#narr .ln.v2 { color: #ec9da1; }
+#narr .ln.q { color: #e9e5dc; padding-left: 14px; border-left: 1px solid #555; }
+#narr .ln.date { font-size: 13px; letter-spacing: .14em; color: var(--muted); }
+#narr .phrase { font-family: var(--f-verdict); font-weight: 800; font-size: clamp(24px, 5.4vw, 40px); line-height: 1.5; color: var(--blood); text-align: center; letter-spacing: .04em; animation: fadein 2.2s ease-out; text-wrap: balance; }
+#narr .bigtitle { font-family: var(--f-verdict); font-weight: 700; font-size: clamp(26px, 6vw, 42px); text-align: center; letter-spacing: .12em; animation: fadein 2s; }
+#narr .bigtitle small { display: block; font-family: var(--f-ui); font-size: 13px; letter-spacing: .3em; color: var(--muted); font-weight: 400; margin-bottom: 10px; }
+#narr .lastline { font-family: var(--f-hand); font-size: clamp(32px, 7vw, 48px); color: var(--pale); text-align: center; opacity: 0; animation: fadein 3s 1s forwards; }
+#narr .lastline.red { font-family: var(--f-verdict); color: var(--blood); font-size: clamp(20px, 4.4vw, 30px); line-height: 1.6; }
+#narr .more { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); right: max(22px, env(safe-area-inset-right, 0px)); font-size: 13px; color: var(--muted); animation: blink 1.6s infinite; }
+#narr .skip { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); font-size: 12px; color: #6b6f78; padding: 6px 10px; }
+#narr .endbtns { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 34px; opacity: 0; animation: fadein 1s 3s forwards; cursor: default; }
+#narr.glitch { animation: glitch .9s steps(2) 1; }
+@keyframes glitch { 0% { background: #000 } 20% { background: #2a0608 } 40% { background: #000; transform: translateX(6px) } 60% { background: #1b0204; transform: translateX(-5px) } 100% { background: #000; transform: none } }
+@keyframes fadein { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes blink { 50% { opacity: .3 } }
+.vpaper { width: min(440px, 100%); align-self: center; background: var(--paper); color: var(--paper-ink); font-family: var(--f-verdict); padding: 28px 28px 24px; border-radius: 2px; animation: fadein 1.4s; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.vpaper h5 { margin: 0 0 18px; text-align: center; font-size: 24px; letter-spacing: .6em; padding-left: .6em; font-weight: 800; }
+.vpaper dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 16px; font-size: 15px; }
+.vpaper dt { color: #6a6458; }
+.vpaper dd { margin: 0; }
+.vpaper dd.pay { color: #9a1d23; font-weight: 800; }
+.vpaper .sign { text-align: right; margin-top: 22px; font-size: 16px; }
+.vpaper .sign span { display: inline-block; margin-left: 8px; width: 34px; height: 34px; border: 2px solid #b0242b; border-radius: 50%; color: #b0242b; font-size: 12px; line-height: 30px; text-align: center; transform: rotate(-12deg); }
+
+.scene ~ #voice, body.in-scene #voice { bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
+.scene { position: relative; flex: 1; min-height: 0; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.scene svg.sc { width: 100%; height: 100%; display: block; }
+.scene .cap { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(14px + env(safe-area-inset-top, 0px)); font-size: 13px; letter-spacing: .1em; color: #b9bcc4; background: rgba(0,0,0,.55); padding: 6px 12px; border-radius: 3px; }
+.scene .cap b { font-family: var(--f-verdict); font-size: 16px; letter-spacing: .04em; color: var(--fg); display: block; }
+.judge-btn { position: absolute; left: 50%; top: 62%; transform: translate(-50%, -50%); padding: 16px 38px; font-family: var(--f-verdict); font-weight: 800; font-size: 22px; letter-spacing: .3em;
+  color: #fff; background: #7d1a1f; border: 1px solid #c0393f; border-radius: 3px; box-shadow: 0 0 0 6px rgba(192,57,63,.12), 0 0 40px rgba(192,57,63,.45); transition: opacity .25s, left .35s, top .35s; white-space: nowrap; animation: fadein 1.2s; }
+.judge-btn:hover { background: #9a2228; }
+.scene.quake { animation: quake .14s infinite; }
+@keyframes quake { 0% { transform: translate(0, 0) } 25% { transform: translate(-6px, 3px) } 50% { transform: translate(5px, -4px) } 75% { transform: translate(-3px, -2px) } 100% { transform: translate(0, 0) } }
+.judge-btn.shake { animation: shakeb .18s infinite; }
+.judge-btn.gone { opacity: 0; pointer-events: none; }
+@keyframes shakeb { 0% { transform: translate(-50%, -50%) } 25% { transform: translate(calc(-50% - 4px), calc(-50% + 2px)) } 50% { transform: translate(calc(-50% + 3px), calc(-50% - 2px)) } 75% { transform: translate(calc(-50% - 2px), calc(-50% - 1px)) } }
+.scene .bagline { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-size: 12.5px; color: #8d919b; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(transparent, rgba(0,0,0,.8)); }
+
+#toast { position: fixed; z-index: 45; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: #23252d; padding: 10px 16px; border-radius: 4px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
+#toast.on { opacity: 1; }
+
+@media (max-width: 860px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .profile { display: none; }
+  .profile.sheet { display: block; position: fixed; inset: 0; z-index: 28; border: 0;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  .only-narrow { display: inline-flex; }
+  .sheet-close { display: flex; justify-content: flex-end; }
+}
+@media (min-width: 861px) { .sheet-close { display: none; } }
+@media (max-width: 700px) {
+  .roomwrap { overflow-x: auto; overflow-y: hidden; justify-content: flex-start; }
+  .roomwrap svg.room { width: auto; height: 100%; aspect-ratio: 5 / 3; flex: none; }
+  .top .chap { display: none; }
+  .top { gap: 4px; overflow: hidden; }
+  .top .who { display: none; }
+  .top .tb { padding: 6px 6px; font-size: 12.5px; }
+  .top .when { font-size: 12.5px; }
+  .top .when { margin-right: auto; }
+  .slot { min-width: 74px; font-size: 12.5px; }
+  .bottom .go { margin-left: 0; width: 100%; }
+  #voice { bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-width: 560px) {
+  .phone-stage { padding: 0; }
+  .phone-stage .phone { width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+</head><body>
+<div id="app"></div>
+<div id="notif"></div>
+<div id="voice"></div>
+<div id="toast"></div>
+<script>
+/* =====================================================================
+   물때 2 (가제) · 스토리 데이터
+   ★ 임시 이름(구재만, 엄기태, 이하준, 백인호, 진태성, 정유진, 김준서, 이도윤, 정민호)은
+     Claude가 붙인 가명입니다. DP가 언제든 바꿀 수 있어요.
+   표현 원칙(DP): 위험하거나 수위 높은 장면은 그림·대사 모두 직접 보여 주지 않고 돌려서 표현.
+   심판 장면은 언제나 "암전 → 짧은 소리 → 현장에 남긴 문구"로만 보여 줍니다.
+   글 앞의 "*" = 첫 번째 인격(그 녀석), "-" = 두 번째 인격(심판자), "「" = 다른 사람의 말.
+   ===================================================================== */
+const YEAR = 2029; // 1편(2025) + 4년. 화면에는 1편처럼 "202×"로 표시
+
+const ITEMS = {
+  plier:    { n: "펜치", d: "공구함에 있던 펜치." },
+  hammer:   { n: "망치", d: "묵직한 망치. 소리가 크다." },
+  driver:   { n: "드라이버", d: "십자 드라이버. 나사를 풀고 조인다." },
+  gloves:   { n: "장갑", d: "얇은 작업용 장갑. 지문을 남기지 않는다." },
+  idcard:   { n: "내 신분증", d: "내 진짜 이름과 얼굴이 박힌 카드." },
+  phone:    { n: "내 핸드폰", d: "내 이름으로 개통된 핸드폰. 어디에 있든 기지국에 기록이 남는다." },
+  fakeid:   { n: "위조 출입증", d: "'새빛자산관리' 사원증. 이름은 이도윤★, 사진은 나." },
+  carkey:   { n: "대포차 키", d: "회색 세단. 명의도 번호판도 남의 것." },
+  memo:     { n: "동선 메모", d: "찢어진 한상철의 메모를 다시 이어 붙였다. 엄기태의 금요일 밤." },
+  cap:      { n: "모자", d: "검은 야구 모자." },
+  workwear: { n: "점검복", d: "'전기 설비 점검' 조끼와 작업복. 아무도 쳐다보지 않는 옷." },
+  hanbox:   { n: "한상철의 상자", d: "한상철이 보낸 작은 상자. 무엇이 들었는지는 묻지 않았다. 그도 말하지 않았다." },
+  parts:    { n: "남은 부품", d: "지난번에 쓰고 남은 전선 뭉치." },
+  cashbag:  { n: "현금 가방", d: "5만 원권 다발이 가득 든 서류 가방. 무겁다." },
+  namecard: { n: "위조 명함", d: "'대성건설 영업기획팀 과장 정민호★'." },
+  suit:     { n: "양복", d: "짙은 남색 양복. 출소 후 한 번도 입지 않았다." }
+};
+
+/* 원룸 문서. text는 문자열이거나 원룸 단계 st(0~5)를 받는 함수 */
+const DOCS = {
+  fridge: { title: "냉장고 포스트잇", style: "hand",
+    text: "밥 먹기.\n약 먹기.\n수요일 10시 상담.\n그리고 멈추기." },
+  apology: { title: "반성문", style: "paper", voice: "-그 녀석이 매일 밤 읽던 종이.",
+    text: st => st < 3
+      ? "반 성 문\n\n나는 네 사람의 시간을 멈췄다.\n오광수 사장님. 문성호 교수님. 그리고 엄마와 아빠.\n\n법은 나에게 4년을 주었다.\n나는 그 4년을 하루도 빼먹지 않고 셌다. 1,461일.\n그런데 그 숫자로는 아무것도 갚아지지 않았다.\n\n출소하던 날을, 다시 태어난 날로 삼겠다고 다짐했다.\n그리고 그 녀석이 돌아오면, 무슨 일이 있어도 멈추겠다고.\n\n나는 죗값을 다 치렀나?\n모르겠다. 모르니까, 멈춘다. 매일 멈춘다."
+      : "반 성 문\n\n나는 네 사람의 시간을 ░░░.\n…\n법은 나에게 4년을 ░░░.\n나는 그 4년을 하루도 빼먹지 않고 셌다. 1,46░…\n\n(아래쪽이 찢겨 나가 있다.)" },
+  scraps: { title: "기사 스크랩", style: "plain", voice: "-반성문이 있던 자리다.",
+    text: "벽을 채운 기사들.\n\n「'심판자' 신드롬… 온라인 지지 70% 넘어」\n「법이 못 한 일인가, 사적 제재인가」\n「경찰, '심판자' 전담팀 꾸려」" },
+  calendar: { title: "상담 일정표", style: "print",
+    text: st => {
+      let s = "한결마음상담센터 · 정유진★ 상담사\n매주 수요일 오전 10시\n\n7/18 ✓   7/25 ✓   8/1 ✓   8/8 ✓\n8/15 ✓   8/22 ✓   8/29   9/5   9/12";
+      if (st >= 3) s += "\n\n8/29 칸에 줄이 그어져 있다. 옆에 낯선 글씨:\n「8/30(목) 21:00 화상 상담으로 변경」";
+      if (st >= 4) s += "\n\n9월 칸은 비어 있다. 누군가 지웠다.";
+      return s + "\n\n[손글씨] 빠지지 말 것. 그 시간만큼은 내가 나다.";
+    } },
+  rules: { title: "판결문 초안", style: "verdict", voice: "-그 녀석은 이건 떼어 내지 못했다.",
+    text: "심판의 원칙\n\n하나. 죄에 맞는 방식으로 갚게 한다.\n\n둘. 심판은 죄지은 자 한 사람에게만 내린다. 다른 누구도 다쳐서는 안 된다.\n\n셋. 현장에 남기는 것은 판결문 한 장뿐. 나를 가리키는 것은 아무것도 지니지 않는다." },
+  release: { title: "출소증명서", style: "print", voice: "-그 녀석이 매일 꺼내 보던 종이.",
+    text: "출 소 증 명 서\n\n수용번호   2741\n형기 종료일   202×년 7월 14일\n석방 사유   형기 종료\n보호관찰   2년 (정신건강 상담 주 1회 조건)\n\n○○교도소장" },
+  visits: { title: "접견 신청 내역", style: "print", voice: "-47번. 그 녀석은 한 번도 안 만났다.",
+    text: "접견 신청 내역 (발급용)\n\n신청인   서지훈 (지인)\n\n202×.08.02   거부 (수용자 의사)\n202×.09.06   거부 (수용자 의사)\n202×.12.24   거부 (수용자 의사)\n      ⋮\n202×.03.15   거부 (수용자 의사)\n202×.07.10   거부 (수용자 의사)\n\n총 47회 · 접견 0회" },
+  letter: { title: "지훈의 편지", style: "paper", voice: "*그건 뜯지 마… 제발.",
+    text: "(서랍 속 뜯지 않은 편지 52통. 가장 위의 한 통을 뜯었다.)\n\n또 쓴다. 52번째.\n\n7월 10일에 또 갔다가 그냥 왔어. 언제 나오는지는 아무도 안 알려 주더라.\n\n나는 아직도 7월 14일이면 그 해변에 간다. 오후 5시에. 네가 오지 말라던 그 시간에.\n그날 하려던 말은, 네가 나오면 얼굴 보고 할게.\n\n밥은 먹고 다녀라.\n— 지훈" },
+  textbook: { title: "『회로이론』", style: "textbook", voice: "-전기과 2전공. 그 녀석 덕분에 배운 거지." },
+  mirror: { title: "거울", style: "plain",
+    text: st => st < 3
+      ? "거울에 검은 매직으로 적혀 있다.\n\n멈 춰\n\n그 아래 작은 글씨로: 이 얼굴로 다시는."
+      : st < 4
+        ? "거울의 글씨가 바뀌어 있다.\n\n심 판\n\n'멈춰'를 지운 자리 위에 덧쓴 글씨. 내 글씨다."
+        : "거울의 글씨가 바뀌어 있다.\n\n심 판\n\n거울 속 얼굴이 웃고 있다. 나는 웃은 적이 없는데." },
+  postitBed: { title: "상자 위 포스트잇", style: "hand", voice: "-귀엽네.",
+    text: "이건 열지 마.\n열면 너는 또 누군가의 시간을 멈춘다." },
+  postitCar: { title: "금고 위 포스트잇", style: "hand", voice: "-그 사람처럼은 안 돼. 나는 맨정신이니까.",
+    text: "운전대는 다시 잡지 마.\n그 사람처럼 되지 마." },
+  scrap: { title: "반성문 조각", style: "hand", voice: "-모르면 내가 정해 주지.",
+    text: "…나는 죗값을 다 치렀나?\n모르겠다. 모르니까, 멈춘다." },
+  list: { title: "심판 목록", style: "verdict",
+    text: st => "심판 목록\n\n구재만 — 심판\n엄기태 — 심판\n백인호 — 심판\n진태성 — " + (st >= 5 ? "심판\n\n죗값을 다 치르지 않은 자: 그 녀석" : "") }
+};
+
+
+/* 잠금. 답은 모두 원룸 안 첫 번째 인격의 흔적이나 표적 프로필을 조합해야 나온다. */
+const LOCKS = {
+  toolbox1: { title: "공구함 자물쇠", kind: "digits", len: 4, answer: "0714",
+    note: "이걸 열려는 너에게.\n번호는 내가 다시 태어난 날.",
+    special: { "0604": "*그날은 네가 태어난 날이지. 내가 아니라.", "1103": "*그건 엄마가 나를 낳은 날이야. 다시 태어난 날이 아니라." },
+    openVoice: "-출소한 날. 그 녀석다운 번호다.",
+    contents: [{ item: "plier" }, { item: "hammer" }, { item: "driver" }] },
+  safe2: { title: "금고", kind: "digits", len: 4, answer: "1109",
+    note: "그 아이가 떠난 날.\n너는 그 아이의 이름도 몰랐지.",
+    special: { "0602": "*그건 그 사람이 풀려난 날이야. 그 아이가 떠난 날이 아니라." },
+    openVoice: "-이하준. 이제는 안다.",
+    contents: [{ text: "대포차 키 하나. 꼬리표에 한상철의 글씨: 「사거리 300m 뒤 공터」" }, { item: "carkey" }] },
+  memo2: { title: "찢어진 메모", kind: "order", result: "memo",
+    note: "한상철이 보낸 메모. 그 녀석이 네 조각으로 찢어 버렸다. 순서대로 이어 붙인다.",
+    pieces: ["금요일 밤, 그는 대리를 부르지 않는다.", "23:52 아파트 앞 공영주차장에 차를 댄다.", "23:55 걸어서 그 횡단보도를 건넌다.", "신호는 보지 않는다. 그날처럼. — 상철"],
+    shown: [2, 0, 3, 1],
+    openVoice: "-23시 55분. 그 횡단보도." },
+  closet3: { title: "옷장 자물쇠", kind: "digits", len: 4, answer: "0710",
+    note: "지훈이 형이\n마지막으로 나를 찾아온 날.",
+    special: { "0714": "*그날은 내가 나온 날이야. 형은 그날을 몰랐어." },
+    openVoice: "-47번째 거절. 그 녀석은 날짜까지 외우고 있었다.",
+    contents: [{ text: "점검복과 장갑." }, { item: "workwear" }, { item: "gloves" }] },
+  box3: { title: "한상철의 상자", kind: "digits", len: 4, answer: "1461", resistors: true,
+    note: "내가 센 날들.",
+    special: { "0714": "*그건 끝난 날이야. 센 날이 아니라." },
+    openVoice: "-1,461일. 그 녀석이 센 날짜로 잠긴 상자.",
+    contents: [{ text: "그 녀석이 한상철의 상자를 다시 테이프로 감아 이 안에 넣어 두었다." }, { item: "hanbox" }] },
+  case4: { title: "캐리어", kind: "text", answer: "심판자",
+    note: "마지막 자물쇠.\n너는 누구지?\n네 이름을 적어. 내 이름 말고.",
+    special: { "나": "*그건 내 대답이야.", "그녀석": "*그 녀석은… 나야.", "a씨": "*그건 뉴스가 부르는 이름이야. 내 이름이기도 하고." },
+    openVoice: "*그래. 너는 심판자구나. …그럼 나는 누구지.",
+    contents: [{ item: "cashbag" }] }
+};
+const WRONG = ["*제발 멈춰.", "*그만해. 아직 늦지 않았어.", "*너는 이걸 열면 안 돼.", "*멈춰. 제발."];
+
+/* 네 번의 심판. need = 반드시 챙길 것, trap = 챙기면 실패. 나머지는 챙겨도 상관없음. */
+const JUDGE = {
+  1: {
+    label: "첫 번째 심판", target: "구재만★", t: "7/26 21:00", stage: 1, slots: 3, scene: "office",
+    need: ["plier", "fakeid"], trap: ["hammer", "idcard", "phone"],
+    profile: {
+      eyebrow: "표적 1 · 한빛캐피탈 대표", name: "구재만★ (55)",
+      rows: [
+        ["죄목", "검찰 수사관을 사칭한 보이스피싱 조직 '한빛캐피탈' 총책.\n피해자 212명, 피해액 약 61억 원. 피해자 가운데에는 그 녀석의 부모님도 있다."],
+        ["법이 내린 형량", "1심 징역 7년 → 항소심(202×. 11. 20.) 징역 3년, 집행유예 5년.\n\"피해 일부를 공탁했고 깊이 반성하고 있다.\" 전관 출신 변호인단."],
+        ["어떤 자인가", "전화 한 통, 말 몇 마디로 사람들의 평생을 가져갔다. 법정에서도 그 말솜씨로 풀려났다."],
+        ["지금", "이름을 바꾼 대부업체 '새빛자산관리' 대표. 인천 주안동 ○○빌딩 7층."],
+        ["생활 패턴", "직원 4명은 19:00 퇴근. 매주 목요일 밤엔 혼자 남아 23:30까지 장부 정리. 금요일 08:40 직원 출근."],
+        ["동선·보안", "빌딩 출입은 사원증 태그로만 열린다. 경비원 없음. 엘리베이터 CCTV는 목요일 22:00~24:00 한상철이 꺼 둔다."],
+        ["주변 인물", "아내와 별거. 자녀와 연락 끊김."]
+      ],
+      han: "출입증은 직원 '이도윤' 이름으로 만들어 택배로 보냈다.\n폰은 두고 와. 기지국에 다 남는다.\n네 진짜 이름이 적힌 건 아무것도 들고 오지 마."
+    },
+    replace: {
+      toolbox: [{ lock: "toolbox1" }],
+      bed: [{ doc: "postitBed" }, { text: "택배 상자. 한 번 뜯었다가 테이프를 다시 붙였다. 그 녀석이 열어 보고 숨긴 것이다." }, { item: "fakeid" }, { item: "gloves" }]
+    },
+    pre: ["date:7월 26일 목요일 · 23:02", "새빛자산관리. 7층.", "출입증을 대자 문이 열렸다. 사원 이도윤.", "복도 끝 사무실에만 불이 켜져 있었다."],
+    sceneTitle: "새빛자산관리 사무실", sceneCap: "목요일 23:04",
+    success: ["「누, 누구야. 직원이야?」", "-구재만 씨. 전화 한 통으로 212명의 인생을 가져간 사람.", "-오늘은 당신이 대답할 차례입니다.", { blackout: true }, "「잠깐, 내 말 좀…」", "-말은 충분히 하셨잖아요."],
+    phrase: "세 치 혀로 흥한 자, 그 혀로 망한다.",
+    verdict: { who: "구재만", crime: "사기 (피해자 212명)", law: "징역 3년, 집행유예 5년", pay: "그 혀" }
+  },
+  2: {
+    label: "두 번째 심판", target: "엄기태★", t: "8/10 22:30", stage: 2, slots: 3, scene: "road",
+    need: ["carkey", "memo"], trap: ["plier", "hammer", "idcard", "phone"],
+    profile: {
+      eyebrow: "표적 2 · 음주운전 사망 사고 가해자", name: "엄기태★ (48)",
+      rows: [
+        ["죄목", "5년 전 11월 9일 새벽 2시 10분, 만취 운전.\n인천 연수구 ○○사거리 횡단보도에서 길을 건너던 대학생 이하준★(21)을 숨지게 함."],
+        ["법이 내린 형량", "징역 2년, 집행유예 3년 (202×. 6. 2. 선고).\n\"깊이 반성하고 있고 초범인 점을 고려했다.\""],
+        ["어떤 자인가", "사람의 생명을 빼앗고도 반성문 몇 장으로 집에 돌아갔다. 그리고 다시 술을 마시고 운전대를 잡았다."],
+        ["지금", "집행유예가 끝난 뒤 면허를 다시 땄다. 물류회사 영업부장."],
+        ["생활 패턴", "한상철의 3개월 기록: 매주 금요일 회식. 대리운전을 부르지 않고 직접 운전해 귀가. 블랙박스 영상 11건."],
+        ["동선", "정확한 귀가 시각은 한상철이 메모로 따로 보냈다. 아파트 앞 공영주차장 → 걸어서 ○○사거리 횡단보도 → 집.\n이하준이 떠난, 바로 그 횡단보도."],
+        ["주변 인물", "아내, 고등학생 딸. 금요일 밤 귀갓길엔 늘 혼자."]
+      ],
+      han: "차는 대포차. 키는 보냈다. 사거리 300m 뒤 공터에 세워 뒀다.\n끝나면 차는 내가 처리한다.\n폰 두고 와."
+    },
+    replace: {
+      safe: [{ doc: "postitCar" }, { lock: "safe2" }],
+      trash: [{ lock: "memo2" }],
+      closet: [{ text: "옷 몇 벌." }, { item: "cap" }]
+    },
+    pre: ["date:8월 10일 금요일 · 23:48", "사거리 300m 뒤 공터.", "대포차의 시동을 걸었다. 라디오는 켜지 않았다.", "23:52. 그의 차가 공영주차장으로 들어갔다. 메모대로."],
+    sceneTitle: "○○사거리 횡단보도", sceneCap: "금요일 23:54",
+    success: ["23:55. 그가 횡단보도에 발을 올렸다. 신호는 보지 않았다.", "-5년 전 이 자리엔 이하준이 서 있었다.", "헤드라이트를 켰다.", { blackout: true }, "그리고 다시 눈을 떴을 때, 횡단보도는 비어 있었다."],
+    phrase: "남의 생명을 빼앗은 자, 생명으로 갚아라.",
+    verdict: { who: "엄기태", crime: "위험운전치사 (이하준, 21세)", law: "징역 2년, 집행유예 3년", pay: "생명" }
+  },
+  3: {
+    label: "세 번째 심판", target: "백인호★", t: "8/30 19:30", stage: 3, slots: 3, scene: "studyroom",
+    need: ["hanbox", "driver", "workwear"], trap: ["hammer", "idcard", "phone", "plier"],
+    profile: {
+      eyebrow: "표적 3 · 대성증권 주가조작 설계자", name: "백인호★ (61)",
+      rows: [
+        ["죄목", "14년 전 대성증권 시세조종(주가조작)의 실제 설계자.\n그 녀석의 부모와 함께 판을 짰다."],
+        ["법이 내린 형량", "없음. 직원 한상철 혼자 징역 3년.\n리스크관리 자문위원 문성호 교수가 \"한 씨 단독 범행\"이라고 증언했다."],
+        ["어떤 자인가", "남에게 죄를 덮어씌우고, 14년 동안 그 시절 장부를 꺼내 보며 살았다."],
+        ["지금", "송도 ○○오피스텔 1204호에서 혼자 '투자 자문' 사무실을 운영."],
+        ["생활 패턴", "매일 19:00~21:40 외출. 22:00 전후 귀가하면 맨 먼저 그 방의 컴퓨터를 켠다.\n14년 전 장부가 든 컴퓨터. 비밀번호는 본인만 안다. 그 컴퓨터를 켜는 사람은 백인호 한 사람뿐."],
+        ["출입", "8/30 '전기 설비 점검' 공지를 한상철이 붙여 둔다. 점검복 차림이면 아무도 의심하지 않는다. 문은 한상철이 연다.\n컴퓨터 본체는 나사로 잠겨 있다."],
+        ["주변 인물", "가사도우미(월·목 14:00~16:00). 딸은 가끔 들른다."]
+      ],
+      han: "상자는 내가 준비했다. 넌 열지 말고 그 자리에만 두면 된다.\n그날 넌 21시부터 화상 상담이 있어야 한다. 상담사한테 시간 바꿔 달라고 해 뒀다.\n폰 두고 와."
+    },
+    replace: {
+      closet: [{ lock: "closet3" }],
+      bed: [{ lock: "box3" }],
+      trash: [{ doc: "scrap" }]
+    },
+    pre: ["date:8월 30일 목요일 · 19:58", "송도 ○○오피스텔 1204호.", "'전기 설비 점검' 공지문 앞을 지나가는 점검복 차림의 남자를, 아무도 쳐다보지 않았다.", "문은 한상철이 열었다. 방 안에는 컴퓨터 한 대."],
+    sceneTitle: "1204호 서재", sceneCap: "목요일 20:03 · 백인호는 외출 중",
+    success: ["20:14. 본체 덮개의 나사를 다시 조였다. 상자는 원래 거기 있던 것처럼 보였다.", { blackout: true }, "date:21:00", "화상 상담. 정유진 선생님이 웃었다.", "「오늘은 얼굴이 편해 보이네요.」", "-네. 요즘 잠을 잘 자요.", "*…선생님, 저…", "-…아무것도 아니에요.", "date:21:58", "그는 매일 밤 그랬듯이, 컴퓨터를 켰다.", { sfx: "far" }, "멀리서, 아주 짧은 소리."],
+    phrase: "덮어씌운 죄는 다시 돌아온다.",
+    verdict: { who: "백인호", crime: "시세조종, 죄를 한상철에게 덮어씌움", law: "없음", pay: "그 장부와 함께" }
+  },
+  4: {
+    label: "네 번째 심판", target: "진태성★", t: "9/14 19:30", stage: 4, slots: 3, scene: "mansion",
+    need: ["cashbag", "namecard", "suit"], trap: ["hammer", "idcard", "phone", "parts", "fakeid"],
+    profile: {
+      eyebrow: "표적 4 · 3선 국회의원", name: "진태성★ (63)",
+      rows: [
+        ["죄목", "14년 전 대성증권 주가조작 수사를 덮어 준 대가로 건설업체에서 수억 원을 받은 의혹.\n언론의 관심까지 덮었다."],
+        ["법이 내린 형량", "없음. 202×년 7월 수사 종결, 무혐의.\n\"기억이 나지 않는다.\""],
+        ["어떤 자인가", "돈을 받고 남의 죄를 덮었다. 기억나지 않는다는 말 한마디로 버텼다."],
+        ["지금", "현역 의원."],
+        ["생활 패턴", "금요일 밤 21:00, 성북동 자택 서재에서 '손님'을 받는다. 현금을 들고 오는 손님.\n그런 날엔 보좌관과 경호원을 일찍 퇴근시키고 집 CCTV를 직접 끈다."],
+        ["출입", "인터폰으로 손님의 얼굴과 가방부터 확인한다. 양복 차림이 아니면 문을 열지 않는다. 명함을 먼저 받는다."],
+        ["주변 인물", "가족은 해외 체류. 금요일 밤엔 혼자."]
+      ],
+      han: "넌 대성건설 정민호 과장. 명함은 택배로 보냈다.\n가방 안엔 진짜 현금이 있어야 한다. 그놈은 무게부터 본다.\n폰 두고 와."
+    },
+    replace: {
+      closet: [{ text: "옷걸이에 양복 한 벌. 그리고 처음 보는 캐리어." }, { item: "suit" }, { lock: "case4" }],
+      bed: [{ text: "지난번에 쓰고 남은 것." }, { item: "parts" }],
+      desk: [{ action: "phone" }, { item: "phone" }, { text: "택배 봉투. 한상철이 보낸 것. 이번엔 그 녀석이 숨기지 않았다. 숨길 힘도 없는 것처럼." }, { item: "namecard" }],
+      trash: [{ doc: "scrap" }],
+      drawer: [{ doc: "release" }, { doc: "visits" }, { doc: "letter" }, { item: "idcard" }, { text: "지난번 위조 출입증도 아직 여기 있다." }, { item: "fakeid" }]
+    },
+    pre: ["date:9월 14일 금요일 · 20:55", "성북동.", "초인종을 누르자 인터폰 너머로 목소리가 들렸다.", "「누구시오.」", "-대성건설 정민호 과장입니다. 준비한 걸 가져왔습니다.", "문이 열렸다. 가방의 무게를 확인하고 나서야."],
+    sceneTitle: "진태성의 서재", sceneCap: "금요일 21:02",
+    success: ["「돈은 거기 두고 가시오.」", "-아니요. 이건 의원님 몫입니다.", "-평생 이걸 그렇게 좋아하셨으니까.", { blackout: true }, "서재의 불이 꺼졌다. 끝까지, 그는 가방에서 눈을 떼지 못했다."],
+    phrase: "돈으로 흥한 자, 돈으로 죽다.",
+    verdict: { who: "진태성", crime: "뇌물수수, 대성증권의 죄를 덮음", law: "없음 (무혐의)", pay: "그 돈" }
+  }
+};
+
+/* 현장에서 첫 번째 인격이 끼어드는 정도 (심판 번호별) */
+const INTERFERE = {
+  1: [],
+  2: ["*안 돼…"],
+  3: ["*그 사람한테도 딸이 있어.", "-원칙 둘. 딸은 오늘 여기 없어.", "*제발…"],
+  4: ["*멈춰!", "*이 사람까지 심판하면, 너는 돌아갈 데가 없어.", "*내 손이야. 내 손이라고!", "*나는… 아직 답을 못 냈어."]
+};
+
+const FAIL_REASON = { miss: "가방 속에 있어야 할 것이 없었다.", trap: "가방 속에 있어서는 안 될 것이 있었다." };
+
+/* 진행 순서. 시간 표기 "월/일 시:분" (202×년 = 2029년 기준 요일) */
+const HEE_MAILS = [
+  { date: "2025. 11. 2.", from: "희주", subject: "(제목 없음)", body: "재판 봤어.\n나 때문이라는 말… 아직 모르겠어. 화가 나는지, 슬픈지." },
+  { date: "2026. 11. 3.", from: "희주", subject: "생일", body: "생일 축하해.\n이런 말 해도 되는지 모르겠지만." },
+  { date: "2027. 3. 21.", from: "희주", subject: "(제목 없음)", body: "졸업했어. 그냥, 말하고 싶었어." },
+  { date: "2028. 11. 3.", from: "희주", subject: "생일", body: "생일 축하해." },
+  { date: "2029. 7. 14.", from: "희주", subject: "오늘", body: "오늘 나온다고 들었어.\n답 안 해도 돼. 그냥 살아 있어 줘." }
+];
+const SCRIPT = [];
+
+SCRIPT.push(
+  { type: "title" },
+  { type: "narr", t: "7/14 11:00", name: "A씨", lines: [
+    "date:202×년 7월 14일 토요일",
+    "4년 전 오늘, 나는 112에 전화를 걸었다.",
+    "교도소 문이 열렸다. 마중 나온 사람은 없었다. 출소 날짜를 아무에게도 알리지 말아 달라고 한 건 나였다.",
+    "교도소 앞으로 봉투 하나가 와 있었다. 원룸 열쇠와 계약서, 그리고 새 핸드폰.",
+    "보낸 사람 칸은 비어 있었다. 나는 누군가의 선의라고 믿기로 했다.",
+    "보호관찰 2년. 매주 수요일 정신과 상담."
+  ] }
+);
+
+SCRIPT.push({ type: "phone", name: "A씨", done: "잠자리에 든다", batches: [
+  { t: "7/14 15:20", items: [
+    { msg: "probation", name: "보호관찰소", lines: ["[보호관찰소] 보호관찰 개시 안내", "지정 주거지: 인천 미추홀구 ○○로 원룸 302호", "정신건강 상담: 매주 수요일 10:00\n(한결마음상담센터 정유진★ 상담사)", "첫 상담: 7/18(수)"] },
+    { mails: true },
+    { voice: "*메일 계정에 다시 로그인했다. 희주의 메일이 쌓여 있었다. 한 통도 답하지 않은." }
+  ] },
+  { t: "7/14 18:00", items: [
+    { news: { id: "n1", press: "연합뉴스", title: "'부모 포함 4명' 20대 A씨, 4년 만에 출소",
+      body: "4년 전 인천 갈매 해변 사건 등으로 부모를 포함해 4명의 목숨을 앗아 간 20대 A씨가 14일 출소했다.\n\n재판부는 A씨가 해리성 정체감 장애(이중인격)로 판단 능력이 크게 떨어진 상태였다는 감정 결과를 받아들였다. 스스로 자수한 점, 수감 중 반성문을 꾸준히 낸 점, 모범수로 분류된 점도 감경 사유가 됐다.\n\nA씨는 보호관찰을 받으며 주 1회 정신과 상담을 받는다.",
+      cmts: [["익명", "4명에 4년? 한 명당 1년이네"], ["익명", "인격이 둘이면 형량도 반으로 나눠 주냐"], ["익명", "자수했으니 된 거라고? 유족은?"]],
+      voice: "*나는 기사를 끝까지 읽었다. 댓글까지. 한 명당 1년." } }
+  ] },
+  { t: "7/15 11:00", items: [
+    { news: { id: "n2", press: "KBS", title: "갈매 해변 사건 유족 \"4년이 죗값입니까\"",
+      body: "식당 업주 고 오광수 씨의 아내와 대학교수 고 문성호 씨의 딸이 15일 기자회견을 열었다.\n\n\"그 사람은 반성했다고 4년을 받았습니다. 반성하면 사람이 돌아옵니까.\"",
+      voice: "*그 질문에 나는 대답할 수 없었다." } }
+  ] },
+  { t: "7/16 09:30", items: [
+    { news: { id: "n3", press: "MBC", title: "'뇌물 의혹' 진태성 의원 수사 종결… 무혐의",
+      body: "건설업체로부터 수억 원을 받은 의혹을 받아 온 3선 진태성★ 의원에 대해 검찰이 증거 불충분으로 무혐의 처분했다. 진 의원은 4년 전 조사에서 \"기억이 나지 않는다\"는 말을 되풀이했다.",
+      voice: "*4년. 나와 같은 4년. 그는 하루도 갇히지 않았다." } }
+  ] },
+  { t: "7/17 18:00", items: [
+    { msg: "center", name: "한결마음상담센터", lines: ["[한결마음상담센터] 내일(7/18 수) 10:00 상담 예약 안내드립니다. 담당: 정유진 상담사"] }
+  ] },
+  { t: "7/18 10:50", items: [
+    { narr: ["date:7월 18일 수요일 · 10:00", "한결마음상담센터.", "「요즘 가장 많이 드는 생각이 뭐예요?」", "*…제가 죗값을 다 치렀는지요.", "「누가 그걸 정해 주면 좋겠어요?」", "*법이요. 법이 4년이라고 했으니까, 4년이 맞는 거라고.", "「그 말을 믿어요?」", "나는 대답하지 못했다."] },
+    { msg: "center", name: "한결마음상담센터", lines: ["정유진입니다. 오늘 이야기 고마웠어요.", "답이 없는 질문은 오래 들고 있어도 괜찮아요. 다음 주 수요일에 봬요."] }
+  ] },
+  { t: "7/20 23:40", items: [ { voice: "*잠이 오지 않는다." } ] }
+] });
+
+SCRIPT.push(
+  { type: "narr", lines: [
+    "date:7월 20일 밤",
+    "-이 방, 누가 구해 줬을까?",
+    "그 목소리를 나는 4년 만에 들었다.",
+    "*…누군가의 선의야.",
+    "-그 선의, 나야. 네가 112를 누르기 전에 내가 빼 둔 돈. 이 방도, 앞으로 필요한 것들도.",
+    "*그만. 나는 죗값을 치렀어.",
+    "-치렀다고? 사장 아내가 우는 거 봤잖아. 진태성은 하루도 안 갇혔고.",
+    "-법을 믿었지만 결국 우리조차 죗값을 다 치르지 못했잖아. 정말 그들이 정한 죗값이 합당하다고 생각해?",
+    "*……",
+    "-대답 못 하지. 그게 문이 열리는 소리야.",
+    "-내가 다시 돌아온다고 했지.",
+    { glitch: true }, { rename: "심판자" },
+    "눈을 떴다. 손에 핸드폰이 들려 있었다.",
+    "-이제 이건 필요할 때만 본다."
+  ] },
+  { type: "phone", name: "심판자", done: "핸드폰을 내려놓는다", batches: [] },
+  { type: "narr", t: "7/21 09:10", lines: [
+    "date:7월 21일 토요일 · 아침",
+    "방은 그 녀석이 정리해 둔 그대로였다.",
+    "벽에는 반성문. 곳곳에 '멈춰'라고 적힌 포스트잇.",
+    "-귀엽네.",
+    "-방을 둘러보자. 그 녀석이 무엇을 남겨 뒀는지."
+  ] },
+  { type: "room", stage: 0, done: "구재만을 심판 대상으로 정한다", batches: [
+    { t: "7/21 09:20", items: [
+      { news: { id: "n4", stamp: "202×. 11. 20. (3년 전)", press: "인천일보", title: "'한빛캐피탈' 총책 구재만, 항소심서 집행유예로 석방",
+        body: "검찰 수사관을 사칭해 212명에게서 약 61억 원을 가로챈 보이스피싱 조직 '한빛캐피탈' 총책 구재만★(52)이 항소심에서 징역 3년, 집행유예 5년을 선고받고 풀려났다.\n\n재판부는 \"피해 일부를 공탁했고 깊이 반성하고 있다\"고 밝혔다. 구 씨는 전관 출신 변호인단을 선임했다.",
+        cmts: [["피해자 가족", "우리 엄마는 아직 그 돈 못 돌려받았습니다."]],
+        voice: "-구재만. 그 녀석의 부모에게 전화를 건 놈." } }
+    ] },
+    { t: "7/21 23:10", items: [
+      { msg: "han", name: "알 수 없음", lines: ["잠깐 만나서 대화 좀 하지.", "4년 늦었지만.", "나 한상철이다.", "6월 20일 밤, 갈매 해변에서 봤다. 네가 교수를 바다로 보내는 걸.", "그래서 내가 대신 자백했다. 어떻게 했는지 몰라서, 엉터리로 말했지만.", "4년 동안 준비했다. 사망 처리된 내 이름 대신 새 이름. 네 것도.", "정보는 내가 판다. 문은 내가 연다. 심판은 네가 해.", "구재만 기사 봤겠지. 내가 띄운 거다.", "첫 번째는 그놈으로 하자."] },
+      { rename: { thread: "han", name: "한상철" } },
+      { voice: "-4년 동안 나를 기다린 사람이 있었다." }
+    ] }
+  ] },
+  { type: "narr", lines: [
+    "답장을 보냈다. 「하자.」",
+    "몇 분 뒤, 파일이 왔다. 사진, 죄목, 형량, 동선.",
+    "-그리고 벽에 원칙을 적었다. 그 녀석이 떼어 내지 못하게.",
+    "date:7월 23일 월요일",
+    "눈을 뜨니 오후였다. 기억에 없는 세 시간.",
+    "-이번엔 내 쪽 기억이 비어 있다. 그 녀석이 깨어 있던 시간.",
+    "한상철이 보낸 택배는 문 앞에 없었다. 내가 주문해 둔 공구들도.",
+    "-숨겼구나.",
+    "-좋아. 찾아 주지.",
+    "date:7월 26일 목요일 · 21:00 · 심판의 날"
+  ] },
+  { type: "judge", j: 1 }
+);
+
+SCRIPT.push(
+  { type: "room", stage: 2, t: "7/27 08:00", done: "엄기태를 심판 대상으로 정한다", batches: [
+    { t: "7/27 11:20", items: [
+      { news: { id: "n5", press: "YTN", title: "인천 대부업체 사무실서 50대 대표 숨진 채 발견… 책상 위엔 '판결문'",
+        body: "27일 오전 출근한 직원이 인천 주안동의 한 대부업체 사무실에서 대표 구 모(55) 씨가 숨져 있는 것을 발견해 신고했다. 구 씨는 보이스피싱 조직 '한빛캐피탈' 총책으로 기소됐다가 항소심에서 집행유예로 풀려난 인물이다.\n\n책상 위에는 구 씨의 죄목과 받은 형량, 그리고 '죗값'이라는 항목이 적힌 판결문 형식의 종이가 놓여 있었다. 종이 끝에는 '심판자'라고 적혀 있었다.",
+        cmts: [["익명", "이러면 안 되는 거 알지만 박수 친다"], ["익명", "사적 제재는 범죄입니다"], ["익명", "판결문… 심판자래"]] } }
+    ] },
+    { t: "7/27 20:00", items: [
+      { boardOn: true },
+      { board: { by: "들물 (운영자)", title: "[공지] 죗값 게시판을 엽니다", body: "법이 매기지 못한 죗값을 기록하는 곳입니다.\n판결은 하지 않습니다. 기록만 합니다.", rec: "공지" } },
+      { board: { by: "익명", title: "한빛캐피탈 피해자입니다", body: "오늘 처음으로 잠을 잤습니다.", rec: "추천 4.1천" } },
+      { board: { by: "익명", title: "박수 치지 마세요", body: "이건 살인입니다.", rec: "추천 812 · 비추 3.3천" } },
+      { voice: "-이름이 붙었다. 심판자." }
+    ] },
+    { t: "7/28 10:15", items: [
+      { msg: "kim", name: "김준서★ 형사", lines: ["오랜만입니다. 4년 전 당신 자수 전화를 받았던 김준서입니다.", "목요일 밤 11시쯤 어디 계셨습니까?", "나:집에 있었습니다.", "그렇겠죠. 핸드폰도 집에 있었더군요."] },
+      { voice: "*형사님, 저 좀…" }, { voice: "-조용히 해." }
+    ] },
+    { t: "8/3 22:00", items: [
+      { news: { id: "n6", stamp: "202×. 6. 2. (4년 전)", press: "SBS", title: "음주운전으로 대학생 숨지게 한 40대, 집행유예",
+        body: "만취 상태로 운전하다 길을 건너던 대학생을 숨지게 한 40대 남성에게 징역 2년에 집행유예 3년이 선고됐다. 재판부는 \"피고인이 깊이 반성하고 있고 초범인 점을 고려했다\"고 밝혔다." } },
+      { msg: "han", name: "한상철", lines: ["두 번째.", "그 기사 기억하지. 4년 전 네 핸드폰에도 떴던 기사.", "그 사람, 집행유예 끝나고 면허를 다시 땄다. 요즘 금요일마다 술 마시고 직접 몬다. 블랙박스 영상 있다.", "그 대학생이 떠난 횡단보도를, 매주 걸어서 건너 집에 간다."] }
+    ] }
+  ] },
+  { type: "narr", lines: [
+    "-두 번째.",
+    "date:8월 6일 월요일",
+    "또 몇 시간이 비어 있었다.",
+    "방에 금고가 생겼다. 그 녀석이 산 거다.",
+    "-돈도 없으면서. 아, 내 돈이지.",
+    "쓰레기통에는 찢어진 종이. 포스트잇이 또 하나 떨어져 있었다.",
+    "date:8월 10일 금요일 · 22:30 · 심판의 날"
+  ] },
+  { type: "judge", j: 2 }
+);
+
+SCRIPT.push(
+  { type: "room", stage: 3, t: "8/11 07:00", done: "백인호를 심판 대상으로 정한다", batches: [
+    { t: "8/11 07:30", items: [
+      { news: { id: "n7", press: "연합뉴스", title: "'대학생 사망' 음주운전자, 그 횡단보도서 숨진 채 발견… 또 '판결문'",
+        body: "10일 밤 인천 연수구의 한 사거리 횡단보도에서 40대 남성 엄 모(48) 씨가 숨진 채 발견됐다. 엄 씨는 5년 전 같은 횡단보도에서 만취 운전으로 대학생을 숨지게 해 집행유예를 받은 인물이다.\n\n현장 인근에서 판결문 형식의 종이가 발견됐다. 경찰은 지난달 주안동 사건과 같은 사람의 소행으로 보고 있다.",
+        cmts: [["익명", "같은 횡단보도라니…"], ["익명", "심판자 두 번째"], ["익명", "그래도 이건 아니다"]] } }
+    ] },
+    { t: "8/11 12:00", items: [
+      { news: { id: "n8", press: "KBS", title: "숨진 대학생 어머니 \"기쁘지 않다… 하준이가 돌아오는 건 아니니까\"",
+        body: "5년 전 음주운전 사고로 아들을 잃은 어머니는 \"그 사람이 죽었다는데 기쁘지 않다\"며 \"하준이가 돌아오는 건 아니니까\"라고 말했다." } },
+      { voice: "*들었어? 기쁘지 않대." }, { voice: "-기쁘라고 한 거 아니야. 갚으라고 한 거지." }
+    ] },
+    { t: "8/12 21:00", items: [
+      { board: { by: "익명", title: "하준이 친구입니다", body: "솔직히 모르겠어요. 속이 시원한 건지, 무서운 건지.", rec: "추천 2.7천" } },
+      { board: { by: "익명", title: "(운영자가 삭제한 글입니다)", body: "들물: 원칙 없는 건 심판이 아닙니다. 다른 사람 이름을 올리지 마세요.", rec: "삭제됨" } }
+    ] },
+    { t: "8/13 09:40", items: [
+      { msg: "kim", name: "김준서★ 형사", lines: ["금요일 밤 11시 55분. 이번에도 집이었습니까?", "나:집에 있었습니다.", "핸드폰이 또 집에 있었더군요. 당신은 핸드폰을 참 자주 두고 다니시네요."] }
+    ] },
+    { t: "8/16 18:00", items: [
+      { news: { id: "n9", press: "MBC", title: "'심판자' 흉내 낸 사건 잇따라… 경찰 \"모방 범죄 엄정 대응\"",
+        body: "'심판자'를 흉내 낸 폭행과 협박 사건이 전국에서 잇따르고 있다. 경찰은 모방 범죄에 엄정 대응하겠다고 밝혔다." } },
+      { voice: "-흉내 내는 것들. 원칙도 없이." }
+    ] },
+    { t: "8/24 23:00", items: [
+      { msg: "han", name: "한상철", lines: ["세 번째. 이건 내 부탁이기도 하다.", "백인호. 전 대성증권 상무. 14년 전 주가조작 설계자. 네 부모와 함께 판을 짰고, 나 혼자 3년을 살게 만든 놈.", "아직도 그때 쓴 컴퓨터를 갖고 있다. 장부가 다 거기 있다. 매일 밤 그걸 켜고 옛날 숫자를 본다.", "그날 21시엔 화상 상담을 잡아 둬. 네가 집에 있었다는 증인이 필요하다."] },
+      { msg: "center", name: "한결마음상담센터", lines: ["8/30(목) 21:00 화상 상담으로 변경되었습니다. 담당: 정유진"] }
+    ] }
+  ] },
+  { type: "narr", lines: [
+    "-대성증권. 그 녀석 집안의 돈이 시작된 곳.",
+    "-그리고 한상철의 3년이 시작된 곳.",
+    "date:8월 27일",
+    "깨어 보니 반성문이 찢겨 있었다.",
+    "누가 찢었는지는 모르겠다. 나일지도, 그 녀석일지도.",
+    "거울의 글씨도 바뀌어 있었다.",
+    "-봉인이 줄었네. 대신 하나하나가 독해졌어.",
+    "date:8월 30일 목요일 · 19:30 · 심판의 날"
+  ] },
+  { type: "judge", j: 3 }
+);
+
+SCRIPT.push(
+  { type: "room", stage: 4, t: "8/30 22:30", done: "진태성을 심판 대상으로 정한다", batches: [
+    { t: "8/30 22:40", items: [
+      { news: { id: "n10", press: "YTN", title: "[속보] 송도 오피스텔 서재서 불… 60대 남성 숨져",
+        body: "30일 밤 10시쯤 인천 송도의 한 오피스텔 12층에서 불이 나 혼자 살던 60대 남성이 숨졌다. 불은 서재 한 곳만 태우고 꺼졌다. 다른 입주민 피해는 없었다." } }
+    ] },
+    { t: "8/31 09:00", items: [
+      { news: { id: "n11", press: "연합뉴스", title: "숨진 60대는 전 대성증권 상무… 문 앞에 '판결문'",
+        body: "송도 오피스텔에서 숨진 남성은 전 대성증권 상무 백 모(61) 씨로 확인됐다. 현관문 앞에는 판결문 형식의 종이가 붙어 있었다.\n\n백 씨는 14년 전 대성증권 시세조종 사건 당시 배후로 의심받았으나 기소되지 않았다. 당시 직원 한 모 씨가 혼자 징역 3년을 살았다." } }
+    ] },
+    { t: "8/31 12:00", items: [
+      { msg: "han", name: "한상철", lines: ["고맙다.", "14년 기다렸다."] },
+      { voice: "-그가 처음으로 '고맙다'고 했다." }
+    ] },
+    { t: "9/1 10:00", items: [
+      { msg: "kim", name: "김준서★ 형사", lines: ["그 시각 정유진 상담사와 화상 상담 중이셨더군요. 21시부터 50분.", "완벽합니다. 너무 완벽해서 문제죠."] },
+      { voice: "*형사님… 맞아요. 저예요…" },
+      { voice: "-손이 멈췄다. 보내기 버튼 위에서." }
+    ] },
+    { t: "9/2 20:00", items: [
+      { board: { by: "들물 (운영자)", title: "[투표] 다음 기록은?", body: "진태성 의원 78%\n기타 22%", rec: "참여 9.4만" } }
+    ] },
+    { t: "9/9 22:00", items: [
+      { msg: "han", name: "한상철", lines: ["마지막이다.", "진태성. 대성증권 일을 덮어 준 놈. 건설업체에서 돈을 받고.", "금요일 밤마다 성북동 집 서재에서 '손님'을 받는다. 현금을 들고 오는 손님.", "넌 대성건설 정민호 과장. 명함은 보냈다."] }
+    ] }
+  ] },
+  { type: "narr", lines: [
+    "-마지막.",
+    "date:9월 12일",
+    "포스트잇은 하나도 남지 않았다.",
+    "반성문이 있던 자리엔 '심판자' 기사 스크랩.",
+    "옷장 안에 처음 보는 캐리어가 있었다. 자물쇠가 걸려 있다.",
+    "*…열지 마.",
+    "그 녀석의 목소리가 작았다. 아주 작았다.",
+    "date:9월 14일 금요일 · 19:30 · 심판의 날"
+  ] },
+  { type: "judge", j: 4 }
+);
+
+SCRIPT.push(
+  { type: "room", stage: 5, t: "9/15 08:00", done: "벽 앞에 선다", batches: [
+    { t: "9/15 09:40", items: [
+      { news: { id: "n12", press: "KBS", title: "진태성 의원 자택서 숨진 채 발견… 서재엔 5만 원권 다발과 '판결문'",
+        body: "15일 오전 출근한 보좌관이 서울 성북동 자택 서재에서 3선 진태성(63) 의원이 숨져 있는 것을 발견했다. 현장에는 5만 원권 다발과 판결문 형식의 종이가 남아 있었다. 사건 당일 자택 CCTV는 꺼져 있었다." } }
+    ] },
+    { t: "9/15 18:00", items: [
+      { news: { id: "n13", press: "한겨레", title: "[단독] 진 의원에 돈 건넨 대성건설, 대성증권 계열사였다… 14년 전 폭로 기사 재조명",
+        body: "숨진 진태성 의원에게 돈을 건넨 것으로 의심받아 온 대성건설이 대성증권의 계열사인 것으로 확인됐다.\n\n14년 전 한 인터넷 매체는 '대성증권 시세조종의 배후에 투자자 부부와 회사 임원이 있다'는 폭로 기사를 냈으나, 기사는 일주일 만에 내려갔다. 당시 수사는 직원 한 모 씨의 단독 범행으로 끝났다.\n\n숨진 백 모 전 상무, 진 의원, 대성건설로 이어지는 고리가 14년 만에 드러났다.",
+        cmts: [["익명", "심판자가 옳았다"], ["익명", "법이 14년 동안 못 한 걸"], ["익명", "그래도 살인은 살인이다"]] } }
+    ] },
+    { t: "9/15 21:00", items: [
+      { board: { by: "들물 (운영자)", title: "[투표] 심판자는", body: "영웅 61%\n괴물 39%", rec: "참여 31만" } }
+    ] },
+    { t: "9/15 23:30", items: [
+      { narr: [
+        "date:9월 15일 · 23:30",
+        "누군가 문을 두드렸다.",
+        "김준서 형사였다. 4년 전 내 자수 전화를 받은 사람.",
+        "「들어가도 됩니까.」",
+        "그는 벽을 오래 봤다. 기사 스크랩, 판결문 초안. 그리고 아무것도 묻지 않았다.",
+        "「증거가 없습니다. 당신은 늘 집에 있거나, 상담 중이었죠.」",
+        "-형사님. 저 사람들이 받은 형량, 합당했습니까?",
+        "그는 대답하지 않았다.",
+        "「14년 전에 대성증권 기사를 쓴 기자가 제 동기였습니다. 기사는 일주일 만에 내려갔죠.」",
+        "「…다음에 올 땐 영장을 들고 오겠습니다.」",
+        "그는 수갑을 꺼내지 않았다. 문이 닫혔다.",
+        "-그 사람도 답을 못 냈구나."
+      ] }
+    ] }
+  ] },
+  { type: "final" },
+  { type: "end" }
+);
+
+const FINAL = {
+  pre: ["벽에 붙은 목록.", "구재만 — 심판", "엄기태 — 심판", "백인호 — 심판", "진태성 — 심판", "그리고 맨 아래, 내 글씨로 한 줄.", "죗값을 다 치르지 않은 자: 그 녀석", "-마지막 피고인."],
+  mirror: ["*너도 알잖아. 그 목록 맨 아래 줄엔 너도 있어야 해.", "-알아.", "-그래서 너를 올렸지. 우리 둘 중 하나만 갚으면 되니까.", "*……", "*그럼 하나만 약속해.", "*언젠가 너도, 네 죗값을 물어."],
+  verdict: { who: "그 녀석", crime: "살인 (오광수, 문성호, 그리고 두 사람)", law: "징역 4년", pay: "깨어나지 않는 잠" },
+  ending: ["판결은 끝났다.", "그 녀석은 더 이상 문을 두드리지 않았다.", "반성문도, 포스트잇도, 수요일 10시의 상담도 이제 없다.", "한상철에게서 메시지가 왔다.", "「다음은?」", "나는 거울을 봤다. 거울 속 얼굴은, 이제 하나뿐이다.", "등 뒤에서 켜 둔 텔레비전이 떠들고 있었다."],
+  last: "심판자, 그는 영웅이자.... 괴물이다."
+};
+
+const FAIL = {
+  lines: ["'심판한다'는 나타나지 않았다.", "*이제 그만.", "그 녀석의 손이 내 손목을 붙잡았다. 아니, 내 손이 내 손목을 붙잡았다.", "-……놔.", "*안 놔. 4년 동안 연습했어.", "문이 닫혔다. 이번에도 안쪽에서."],
+  last: "법은 불합리함이 있음에도 불구하고 질서를 지켜야 한다."
+};
+
+/* 원룸 그림 (임시 SVG). 1000×600. 단계 st(0~5)에 따라 첫 번째 인격의 흔적이 줄어든다. */
+const SPOTS = [
+  { id: "fridge",   label: "냉장고",      box: [30, 170, 110, 262], lab: [85, 160] },
+  { id: "kitchen",  label: "주방",        box: [142, 296, 130, 136], lab: [207, 288] },
+  { id: "calendar", label: "상담 일정표", box: [160, 92, 96, 112], lab: [208, 84] },
+  { id: "apology",  label: "반성문",      box: [282, 66, 118, 158], lab: [341, 58] },
+  { id: "wall",     label: "벽 · 판결문", box: [430, 222, 160, 70], lab: [510, 306], min: 1 },
+  { id: "bookshelf",label: "책장",        box: [622, 106, 116, 156], lab: [680, 98] },
+  { id: "desk",     label: "책상 · 핸드폰", box: [744, 262, 76, 40], lab: [782, 254] },
+  { id: "drawer",   label: "서랍",        box: [626, 304, 86, 46], lab: [669, 366] },
+  { id: "safe",     label: "금고",        box: [732, 346, 72, 86], lab: [768, 448], min: 2 },
+  { id: "bed",      label: "침대 밑",     box: [282, 452, 304, 52], lab: [434, 528] },
+  { id: "closet",   label: "옷장",        box: [900, 80, 92, 352], lab: [946, 72] },
+  { id: "mirror",   label: "거울",        box: [842, 128, 52, 176], lab: [868, 120] },
+  { id: "toolbox",  label: "공구함",      box: [846, 444, 96, 50], lab: [894, 514] },
+  { id: "trash",    label: "쓰레기통",    box: [596, 398, 36, 40], lab: [614, 458] }
+];
+
+function roomSVG(st, glowPhone) {
+  const day = st === 0 || st === 2;
+  const sky = day ? ["#5d6b7d", "#8a96a3"] : ["#0b1020", "#1b2133"];
+  const wall = ["#2a2c31", "#28292e", "#26262b", "#252226", "#241f22", "#221c1e"][st];
+  const postitPos = [[48,196],[98,250],[292,236],[402,108],[658,276],[848,316],[904,250],[450,200]];
+  const nPost = [8, 6, 4, 2, 0, 0][st];
+  let posts = "";
+  for (let i = 0; i < nPost; i++) {
+    const [x, y] = postitPos[i];
+    posts += `<g transform="translate(${x} ${y}) rotate(${(i * 37) % 11 - 5})"><rect width="30" height="28" fill="#e3d56f"/><text x="15" y="19" font-size="13" text-anchor="middle" class="hand-svg" fill="#3a3520">멈춰</text></g>`;
+  }
+  const fallen = [0, 2, 4, 6, 8, 8][st];
+  for (let i = 0; i < Math.min(fallen, 5); i++) posts += `<rect x="${120 + i * 150}" y="${560 + (i % 2) * 14}" width="22" height="18" fill="#bfb35c" opacity=".55" transform="rotate(${i * 29 % 40 - 20} ${130 + i * 150} ${568})"/>`;
+
+
+  let apology;
+  if (st < 3) {
+    apology = `<rect x="286" y="70" width="110" height="150" fill="#ddd6c6"/><text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">반 성 문</text>`;
+    for (let i = 0; i < 9; i++) apology += `<line x1="298" x2="${384 - (i % 3) * 14}" y1="${106 + i * 11}" y2="${106 + i * 11}" stroke="#8a8477" stroke-width="2"/>`;
+  } else if (st < 4) {
+    apology = `<path d="M286 70 H396 V150 L382 160 L366 148 L350 166 L334 150 L318 168 L300 152 L286 160 Z" fill="#ddd6c6"/><text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">반 성 문</text>`;
+    for (let i = 0; i < 4; i++) apology += `<line x1="298" x2="372" y1="${106 + i * 11}" y2="${106 + i * 11}" stroke="#8a8477" stroke-width="2"/>`;
+  } else {
+    apology = "";
+    for (let i = 0; i < 4; i++) {
+      const x = 284 + (i % 2) * 60, y = 70 + Math.floor(i / 2) * 78;
+      apology += `<g transform="rotate(${i * 7 - 9} ${x + 26} ${y + 32})"><rect x="${x}" y="${y}" width="54" height="66" fill="#c9c5bb"/><rect x="${x + 5}" y="${y + 6}" width="44" height="9" fill="#7d1a1f"/><text x="${x + 27}" y="${y + 13}" font-size="7" text-anchor="middle" fill="#f4dcdc" class="ver-svg">심판자</text><line x1="${x + 6}" x2="${x + 48}" y1="${y + 26}" y2="${y + 26}" stroke="#7b776e" stroke-width="2"/><line x1="${x + 6}" x2="${x + 42}" y1="${y + 34}" y2="${y + 34}" stroke="#7b776e" stroke-width="2"/></g>`;
+    }
+  }
+
+  let wallBoard = "";
+  if (st >= 1) {
+    wallBoard = `<rect x="434" y="226" width="152" height="62" fill="#3d3328"/><rect x="442" y="232" width="44" height="50" fill="#e6e0d2"/><text x="464" y="246" font-size="8" text-anchor="middle" class="ver-svg" fill="#2b2620">원칙</text>`;
+    for (let i = 0; i < Math.min(st, 4); i++) wallBoard += `<rect x="${494 + i * 22}" y="${234 + (i % 2) * 6}" width="18" height="24" fill="#bfc4cc"/><circle cx="${503 + i * 22}" cy="${244 + (i % 2) * 6}" r="5" fill="#1b1d22"/>`;
+  }
+
+  const mirrorWord = st < 3 ? "멈춰" : "심판";
+  const mirrorColor = st < 3 ? "#1b1d22" : "#7d1a1f";
+
+  let s = `<svg class="room" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="원룸">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
+    <radialGradient id="lamp" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd9a0" stop-opacity=".35"/><stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1000" height="440" fill="${wall}"/>
+  <rect y="436" width="1000" height="164" fill="#18181c"/>
+  <line x1="0" y1="436" x2="1000" y2="436" stroke="#3a3b41" stroke-width="3"/>
+  <rect x="436" y="60" width="160" height="140" fill="url(#sky)"/>
+  <rect x="436" y="60" width="160" height="140" fill="none" stroke="#45474f" stroke-width="6"/>
+  <line x1="516" y1="60" x2="516" y2="200" stroke="#45474f" stroke-width="4"/>
+  <rect x="34" y="174" width="102" height="254" rx="6" fill="#6d727b"/>
+  <line x1="34" y1="270" x2="136" y2="270" stroke="#4d5159" stroke-width="3"/>
+  <rect x="146" y="300" width="122" height="128" fill="#3a332d"/>
+  <rect x="146" y="296" width="122" height="10" fill="#55504a"/>
+  <rect x="170" y="310" width="70" height="30" rx="4" fill="#26231f"/>
+  <rect x="164" y="96" width="88" height="104" fill="#e2e0da"/>
+  <rect x="164" y="96" width="88" height="18" fill="#8d9199"/>`;
+
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) s += `<rect x="${170 + c * 20}" y="${120 + r * 19}" width="16" height="15" fill="${r * 4 + c < 6 ? "#b9c3cf" : "#cfcdc6"}"/>`;
+  s += apology + wallBoard;
+  // 책장
+  s += `<rect x="622" y="106" width="116" height="156" fill="#3a2f26"/>`;
+  for (let r = 0; r < 3; r++) {
+    s += `<rect x="626" y="${150 + r * 50}" width="108" height="5" fill="#2a221b"/>`;
+    for (let b = 0; b < 7; b++) s += `<rect x="${630 + b * 14}" y="${116 + r * 50}" width="11" height="34" fill="${["#5b3b3b","#3b4a5b","#4d5b3b","#6b5a3b","#3b3b5b","#5b4b3b","#45464f"][(b + r) % 7]}"/>`;
+  }
+  // 책상, 스탠드, 서랍, 핸드폰
+  s += `<ellipse cx="700" cy="270" rx="170" ry="90" fill="url(#lamp)"/>
+  <rect x="616" y="298" width="210" height="12" fill="#5a4a3c"/>
+  <rect x="622" y="310" width="10" height="126" fill="#46392e"/><rect x="810" y="310" width="10" height="126" fill="#46392e"/>
+  <rect x="630" y="308" width="78" height="40" fill="#4d3f33"/><rect x="660" y="324" width="18" height="5" rx="2" fill="#8b7a63"/>
+  <rect x="640" y="250" width="6" height="48" fill="#30302f"/><path d="M620 232 L668 232 L656 254 L632 254 Z" fill="#c7a46a"/>
+  <rect x="768" y="280" width="34" height="16" rx="3" fill="#0d0e12" stroke="#3a3e48"/>`;
+  if (glowPhone) s += `<rect x="764" y="276" width="42" height="24" rx="5" fill="none" stroke="#c0393f" stroke-width="3" class="phone-glow"/>`;
+  if (st >= 2) s += `<rect x="736" y="350" width="64" height="80" rx="4" fill="#2c2e33" stroke="#4a4d55" stroke-width="2"/><circle cx="768" cy="384" r="12" fill="#1b1c20" stroke="#6a6e78" stroke-width="2"/>`;
+  // 쓰레기통
+  s += `<path d="M598 402 H630 L626 438 H602 Z" fill="#3b3e45"/>`;
+  // 침대
+  s += `<rect x="282" y="398" width="304" height="72" rx="6" fill="#2f323b"/><rect x="290" y="378" width="288" height="40" rx="10" fill="#4a4f5b"/><rect x="296" y="372" width="74" height="28" rx="10" fill="#c9cbd1"/><rect x="282" y="470" width="304" height="30" fill="#0c0d10"/>`;
+  // 옷장과 거울
+  s += `<rect x="836" y="80" width="156" height="356" fill="#3a3128"/><line x1="914" y1="80" x2="914" y2="436" stroke="#26201a" stroke-width="3"/><rect x="926" y="240" width="5" height="40" fill="#8b7a63"/>
+  <rect x="846" y="132" width="44" height="168" fill="#8a96a1"/><rect x="846" y="132" width="44" height="168" fill="none" stroke="#c9cbd1" stroke-width="2"/>
+  <text x="868" y="226" font-size="22" text-anchor="middle" class="hand-svg" fill="${mirrorColor}" writing-mode="tb">${mirrorWord}</text>`;
+  // 공구함
+  s += `<rect x="850" y="452" width="88" height="40" rx="3" fill="#6b2a24"/><rect x="878" y="444" width="32" height="10" rx="3" fill="none" stroke="#3a1612" stroke-width="4"/><rect x="890" y="466" width="8" height="10" fill="#c9a25a"/>`;
+  s += posts;
+
+  // 눌러서 살펴보는 곳
+  for (const sp of SPOTS) {
+    if (sp.min && st < sp.min) continue;
+    const [x, y, w, h] = sp.box;
+    const label = sp.id === "apology" && st >= 4 ? "기사 스크랩" : sp.label;
+    s += `<g class="hot" data-spot="${sp.id}" tabindex="0" role="button" aria-label="${label}">
+      <rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/>
+      <text class="lab" x="${sp.lab[0]}" y="${sp.lab[1]}" text-anchor="middle">${label}</text></g>`;
+  }
+  return s + "</svg>";
+}
+
+/* 현장 그림 (임시 SVG). 1000×600 */
+function lights(seed, n, x0, x1, y0, y1, color) {
+  let s = "", r = seed;
+  for (let i = 0; i < n; i++) {
+    r = (r * 9301 + 49297) % 233280; const x = x0 + (r / 233280) * (x1 - x0);
+    r = (r * 9301 + 49297) % 233280; const y = y0 + (r / 233280) * (y1 - y0);
+    s += `<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="5" height="4" fill="${color}" opacity="${(0.3 + (i % 5) / 8).toFixed(2)}"/>`;
+  }
+  return s;
+}
+function figure(x, y, sc, fill) {
+  return `<g transform="translate(${x} ${y}) scale(${sc})" fill="${fill}"><circle cx="0" cy="-62" r="15"/><path d="M-24 -42 Q0 -50 24 -42 L28 10 H-28 Z"/></g>`;
+}
+function sceneSVG(kind) {
+  const open = `<svg class="sc" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="현장">`;
+  if (kind === "office") return open + `
+    <rect width="1000" height="600" fill="#0d1017"/>
+    <rect x="80" y="60" width="840" height="250" fill="#0a0e1a"/>${lights(7, 70, 90, 910, 140, 300, "#f2d18b")}
+    <line x1="80" y1="60" x2="920" y2="60" stroke="#2a2e38" stroke-width="6"/>${[290, 500, 710].map(x => `<line x1="${x}" y1="60" x2="${x}" y2="310" stroke="#2a2e38" stroke-width="6"/>`).join("")}
+    <rect y="310" width="1000" height="290" fill="#14161c"/>
+    ${[120, 330, 700].map(x => `<rect x="${x}" y="370" width="160" height="10" fill="#2c2f37"/><rect x="${x + 20}" y="350" width="34" height="20" fill="#20232a"/>`).join("")}
+    <ellipse cx="520" cy="380" rx="200" ry="120" fill="#ffd9a0" opacity=".08"/>
+    <rect x="420" y="390" width="200" height="12" fill="#3a352e"/>${figure(520, 392, 1.2, "#06070a")}
+    <rect x="470" y="340" width="40" height="30" fill="#7e9bb5" opacity=".5"/>
+    <text x="840" y="290" font-size="18" fill="#6b7180" text-anchor="middle" font-family="serif">새빛자산관리</text></svg>`;
+  if (kind === "road") return open + `
+    <rect width="1000" height="600" fill="#080b12"/>${lights(3, 40, 0, 1000, 180, 300, "#d9c08a")}
+    <rect y="300" width="1000" height="300" fill="#121318"/>
+    ${[0,1,2,3,4,5,6,7].map(i => `<rect x="${330 + i * 46}" y="380" width="28" height="140" fill="#cfd1d6" opacity=".55" transform="skewX(-8)"/>`).join("")}
+    <rect x="170" y="140" width="8" height="200" fill="#2a2c33"/><rect x="156" y="140" width="36" height="60" rx="4" fill="#1b1c22"/><circle cx="174" cy="158" r="9" fill="#c0393f"/><circle cx="174" cy="182" r="9" fill="#24323b"/>
+    <path d="M0 600 L0 420 L260 470 L260 600 Z" fill="#fff6d8" opacity=".06"/>
+    ${figure(620, 470, 1, "#05060a")}</svg>`;
+  if (kind === "studyroom") return open + `
+    <rect width="1000" height="600" fill="#0b0c10"/>
+    <rect x="620" y="70" width="240" height="220" fill="#101521"/>${[0,1,2,3,4,5,6,7,8].map(i => `<rect x="620" y="${80 + i * 23}" width="240" height="9" fill="#1d212b"/>`).join("")}
+    <rect y="430" width="1000" height="170" fill="#121318"/>
+    <rect x="300" y="390" width="360" height="14" fill="#3a2f26"/><rect x="318" y="404" width="12" height="100" fill="#2b231c"/><rect x="630" y="404" width="12" height="100" fill="#2b231c"/>
+    <rect x="390" y="290" width="150" height="100" rx="6" fill="#2a2c31"/><rect x="402" y="302" width="126" height="76" fill="#1c3a2c" opacity=".7"/>
+    <rect x="560" y="300" width="60" height="90" fill="#25272c"/><circle cx="590" cy="320" r="4" fill="#3a6b4e"/>
+    ${[0,1,2].map(i => `<rect x="${320 + i * 18}" y="${360 - i * 8}" width="50" height="30" fill="#bdb6a6" opacity=".4"/>`).join("")}
+    <ellipse cx="465" cy="340" rx="160" ry="100" fill="#3a6b4e" opacity=".07"/></svg>`;
+  if (kind === "mansion") return open + `
+    <rect width="1000" height="600" fill="#1a120e"/>
+    ${[0,1,2,3,4].map(i => `<rect x="${60 + i * 50}" y="80" width="40" height="330" fill="#2a1d15"/>`).join("")}
+    ${[0,1,2,3,4,5].map(i => `<rect x="60" y="${120 + i * 50}" width="240" height="6" fill="#3a2a1d"/>`).join("")}
+    <rect x="640" y="110" width="200" height="140" fill="#3a2a1d" stroke="#c9a25a" stroke-width="6"/><rect x="660" y="130" width="160" height="100" fill="#5a3b2b"/>
+    <path d="M500 40 L470 90 H530 Z" fill="#c9a25a" opacity=".6"/><circle cx="500" cy="96" r="18" fill="#ffe6b0" opacity=".5"/>
+    <rect y="440" width="1000" height="160" fill="#20160f"/>
+    <rect x="360" y="400" width="320" height="18" fill="#5a3b25"/><rect x="380" y="418" width="280" height="80" fill="#3d2818"/>
+    <rect x="460" y="300" width="90" height="110" rx="12" fill="#2a120f"/>${figure(505, 392, 1.15, "#07050a")}
+    <rect x="600" y="376" width="60" height="24" rx="3" fill="#1d1a17"/></svg>`;
+  if (kind === "mirror") return open + `
+    <rect width="1000" height="600" fill="#050507"/>
+    <rect x="390" y="70" width="220" height="440" fill="#1c2128"/><rect x="390" y="70" width="220" height="440" fill="none" stroke="#5a5f6b" stroke-width="6"/>
+    ${figure(500, 470, 2.2, "#08090c")}
+    <ellipse cx="500" cy="290" rx="260" ry="240" fill="#c0393f" opacity=".06"/>
+    <text x="500" y="140" font-size="40" text-anchor="middle" class="hand-svg" fill="#7d1a1f">심판</text></svg>`;
+  return open + `<rect width="1000" height="600" fill="#000"/></svg>`;
+}
+function portraitSVG(kind) {
+  const bg = { office: "#1c2230", road: "#241a16", studyroom: "#1a201c", mansion: "#2a1d15" }[kind] || "#1a1c24";
+  return `<svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="320" height="180" fill="${bg}"/>${figure(160, 186, 2.2, "#06070a")}<rect width="320" height="180" fill="none" stroke="#000" stroke-width="2"/><text x="300" y="168" font-size="11" fill="#8d919b" text-anchor="end">한상철 제공</text></svg>`;
+}
+
+/* =====================================================================
+   게임 엔진
+   ===================================================================== */
+const $ = (sel, el = document) => el.querySelector(sel);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const SAVE_KEY = "muldae2_save", CP_KEY = "muldae2_checkpoint";
+const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+function newState() {
+  return { step: 0, batch: 0, name: "A씨", time: "7/14 09:00", stage: 0,
+    ph: { threads: {}, torder: [], mails: [], news: [], board: [], boardOn: false },
+    voiceLog: [], seen: {}, prep: null, phase: null };
+}
+let S = newState();
+const clone = o => JSON.parse(JSON.stringify(o));
+function store(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+function fetchSaved(key) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function save() { store(SAVE_KEY, S); }
+
+/* 시간 "7/14 15:20" → 표시 */
+function parseT(t) { const m = /^(\d+)\/(\d+)\s+(\d+):(\d+)$/.exec(t || ""); return m ? new Date(YEAR, +m[1] - 1, +m[2], +m[3], +m[4]) : null; }
+function fmtDate(t) { const d = parseT(t); return d ? `202×. ${d.getMonth() + 1}. ${d.getDate()} (${DAYS[d.getDay()]})` : ""; }
+function fmtClock(t) { const d = parseT(t); return d ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : ""; }
+function fmtShort(t) { const d = parseT(t); return d ? `${d.getMonth() + 1}/${d.getDate()} ${fmtClock(t)}` : t; }
+
+/* 소리 (WebAudio). 배경음악 없음 (DP 선호) */
+let AC = null;
+function audio() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return AC; }
+function tone(freq, dur, type = "sine", vol = 0.12, when = 0) {
+  const ac = audio(); if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + when;
+  o.type = type; o.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function noise(dur, vol = 0.25, lp = 600) {
+  const ac = audio(); if (!ac) return;
+  const len = Math.floor(ac.sampleRate * dur), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+  const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  f.type = "lowpass"; f.frequency.value = lp; g.gain.value = vol;
+  src.buffer = buf; src.connect(f); f.connect(g); g.connect(ac.destination); src.start();
+}
+const SFX = {
+  ping() { tone(1318, 0.18, "sine", 0.08); tone(1760, 0.22, "sine", 0.06, 0.09); },
+  buzz() { tone(110, 0.5, "sawtooth", 0.035); try { navigator.vibrate && navigator.vibrate([120, 60, 120]); } catch (e) {} },
+  thud() { tone(55, 0.7, "sine", 0.35); noise(0.25, 0.15, 300); },
+  far() { noise(0.9, 0.18, 220); tone(48, 1.1, "sine", 0.2); },
+  click() { tone(880, 0.05, "square", 0.03); },
+  wrong() { tone(160, 0.25, "triangle", 0.12); },
+  open() { tone(660, 0.08, "sine", 0.07); tone(990, 0.12, "sine", 0.06, 0.07); }
+};
+
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("on"), 2600); }
+
+/* 목소리: "*" 첫 번째 인격, "-" 두 번째 인격 */
+function voiceKind(line) { return line[0] === "*" ? "v1" : line[0] === "-" ? "v2" : line[0] === "「" ? "q" : ""; }
+function voiceText(line) { return line[0] === "*" || line[0] === "-" ? line.slice(1) : line; }
+function voice(line) {
+  S.voiceLog.push({ t: S.time, s: line });
+  const box = $("#voice"), el = document.createElement("div");
+  el.className = "vl " + voiceKind(line); el.textContent = voiceText(line);
+  box.appendChild(el);
+  while (box.children.length > 2) box.removeChild(box.firstChild);
+  setTimeout(() => el.classList.add("fade"), 6500);
+  setTimeout(() => el.remove(), 7200);
+}
+
+/* 서술 화면 (암전). lines: 문자열 또는 {blackout, glitch, rename, sfx, phrase, verdict, title, clear} */
+function showNarr(lines, done, opts = {}) {
+  let el = $("#narr");
+  if (!el) { el = document.createElement("div"); el.id = "narr"; document.body.appendChild(el); }
+  el.hidden = false; el.className = "";
+  el.innerHTML = `<div class="nl"></div><button class="skip" type="button">건너뛰기</button><div class="more" hidden>눌러서 계속 ▸</div>`;
+  const nl = $(".nl", el), more = $(".more", el);
+  let i = 0, finished = false;
+  const finish = () => {
+    if (finished) return; finished = true;
+    el.onclick = null; document.removeEventListener("keydown", onKey);
+    if (opts.keep) { done && done(); return; }
+    el.hidden = true; done && done();
+  };
+  function addLine(text) {
+    [...nl.querySelectorAll(".ln")].forEach(n => n.classList.add("old"));
+    if (nl.children.length >= 8) nl.removeChild(nl.firstChild);
+    const d = document.createElement("div");
+    if (text.startsWith("date:")) { d.className = "ln date"; d.textContent = text.slice(5); }
+    else { d.className = "ln " + voiceKind(text); d.textContent = voiceText(text); }
+    nl.appendChild(d);
+  }
+  function step() {
+    while (i < lines.length) {
+      const L = lines[i++];
+      if (typeof L === "string") { addLine(L); more.hidden = false; return; }
+      if (L.rename) { S.name = L.rename; continue; }
+      if (L.sfx) { SFX[L.sfx] && SFX[L.sfx](); continue; }
+      if (L.glitch) { el.classList.remove("glitch"); void el.offsetWidth; el.classList.add("glitch"); SFX.thud(); continue; }
+      if (L.blackout) { nl.innerHTML = ""; SFX.thud(); continue; }
+      if (L.clear) { nl.innerHTML = ""; continue; }
+      if (L.phrase) { nl.innerHTML = `<div class="phrase">${esc(L.phrase)}</div>`; more.hidden = false; return; }
+      if (L.title) { nl.innerHTML = `<div class="bigtitle"><small>${esc(L.small || "")}</small>${esc(L.title)}</div>`; more.hidden = false; return; }
+      if (L.verdict) { nl.innerHTML = verdictHTML(L.verdict); more.hidden = false; return; }
+    }
+    finish();
+  }
+  function onKey(e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); step(); } }
+  el.onclick = e => { if (e.target.closest(".skip")) { i = lines.length; step(); return; } if (!e.target.closest(".endbtns")) step(); };
+  document.addEventListener("keydown", onKey);
+  step();
+}
+function verdictHTML(v) {
+  return `<div class="vpaper"><h5>판결문</h5><dl>
+    <dt>피고</dt><dd>${esc(v.who)}</dd><dt>죄목</dt><dd>${esc(v.crime)}</dd>
+    <dt>법이 내린 형량</dt><dd>${esc(v.law)}</dd><dt>죗값</dt><dd class="pay">${esc(v.pay)}</dd></dl>
+    <div class="sign">심판자<span>審</span></div></div>`;
+}
+/* 엔딩/실패 마지막 화면: 버튼이 있는 정지 화면 */
+function showEndCard(html, buttons) {
+  let el = $("#narr");
+  if (!el) { el = document.createElement("div"); el.id = "narr"; document.body.appendChild(el); }
+  el.hidden = false; el.onclick = null; el.className = "";
+  el.innerHTML = `<div class="nl">${html}<div class="endbtns">${buttons.map((b, k) => `<button class="btn ${b.red ? "red" : ""}" data-k="${k}" type="button">${esc(b.label)}</button>`).join("")}</div></div>`;
+  el.querySelectorAll(".endbtns button").forEach(btn => btn.onclick = ev => { ev.stopPropagation(); el.hidden = true; buttons[+btn.dataset.k].fn(); });
+}
+
+/* ---------- 핸드폰 ---------- */
+const PV = { app: null, id: null, open: false };
+const APP_META = {
+  msg:   { n: "메시지", c: "#34c759", i: `<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-4 4v-4H4z" fill="#fff"/></svg>` },
+  mail:  { n: "메일",   c: "#3d8bff", i: `<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" fill="#fff"/><path d="M3 7l9 6 9-6" stroke="#3d8bff" stroke-width="2" fill="none"/></svg>` },
+  news:  { n: "뉴스",   c: "#e8e8ea", i: `<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="#222"/><rect x="7" y="7" width="7" height="4" fill="#c0393f"/><rect x="7" y="13" width="10" height="2" fill="#aaa"/><rect x="7" y="16" width="8" height="2" fill="#aaa"/></svg>` },
+  board: { n: "게시판", c: "#5a1b1f", i: `<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2" fill="#f1c9cb"/><rect x="8" y="8" width="8" height="2" fill="#5a1b1f"/><rect x="8" y="12" width="8" height="2" fill="#5a1b1f"/></svg>` }
+};
+
+function unread(app) {
+  const p = S.ph;
+  if (app === "msg") return Object.values(p.threads).reduce((a, t) => a + t.unread, 0);
+  if (app === "mail") return p.mails.filter(m => !m.read).length;
+  if (app === "news") return p.news.filter(m => !m.read).length;
+  if (app === "board") return p.board.filter(m => !m.read).length;
+  return 0;
+}
+const totalUnread = () => ["msg", "mail", "news", "board"].reduce((a, k) => a + unread(k), 0);
+
+/* 사건 묶음 하나를 배달한다. 알림은 앱·대화방별로 묶어 최대 4줄 (1편 DP 요청) */
+function deliver(batch, after) {
+  S.time = batch.t;
+  const groups = [], narrs = [], voices = [];
+  const group = (key, app, title) => { let g = groups.find(x => x.key === key); if (!g) { g = { key, app, title, lines: [] }; groups.push(g); } return g; };
+  for (const it of batch.items) {
+    if (it.msg) {
+      const p = S.ph; let th = p.threads[it.msg];
+      if (!th) { th = p.threads[it.msg] = { name: it.name, msgs: [], unread: 0 }; }
+      p.torder = [it.msg, ...p.torder.filter(x => x !== it.msg)];
+      const g = group("msg:" + it.msg, "msg", th.name);
+      for (const L of it.lines) {
+        const me = L.startsWith("나:");
+        th.msgs.push({ t: batch.t, me, text: me ? L.slice(2) : L });
+        if (!me) { th.unread++; g.lines.push(L); }
+      }
+    } else if (it.rename) { S.ph.threads[it.rename.thread].name = it.rename.name; }
+    else if (it.mails) { HEE_MAILS.forEach(m => S.ph.mails.unshift({ ...m, read: false })); group("mail", "mail", "메일").lines.push(`희주 외 메일 ${HEE_MAILS.length}통`); }
+    else if (it.news) { S.ph.news.unshift({ ...it.news, t: batch.t, read: false }); group("news:" + it.news.id, "news", it.news.press).lines.push(it.news.title); }
+    else if (it.board) { S.ph.board.unshift({ ...it.board, t: batch.t, read: false }); group("board", "board", "죗값 게시판").lines.push(it.board.title); }
+    else if (it.boardOn) { S.ph.boardOn = true; }
+    else if (it.voice) voices.push(it.voice);
+    else if (it.narr) narrs.push(...it.narr);
+  }
+  save();
+  const finish = () => {
+    if (groups.length) { SFX.ping(); SFX.buzz(); notify(groups); }
+    voices.forEach((v, k) => setTimeout(() => voice(v), 900 + k * 1800));
+    after && after();
+  };
+  if (narrs.length) showNarr(narrs, finish); else finish();
+}
+
+function notify(groups) {
+  const box = $("#notif"); box.innerHTML = "";
+  for (const g of groups.slice(0, 3)) {
+    const m = APP_META[g.app], b = document.createElement("button");
+    b.type = "button"; b.className = "nt";
+    b.innerHTML = `<span class="ni" style="background:${m.c}">${m.i}</span><span class="nb"><b>${esc(g.title)}<em>${fmtClock(S.time)}</em></b>${g.lines.slice(-4).map(l => `<div>${esc(l)}</div>`).join("")}</span>`;
+    b.onclick = () => { box.innerHTML = ""; openPhone(g.app, g.key.split(":")[1] || null); };
+    box.appendChild(b);
+    setTimeout(() => b.classList.add("fade"), 6000);
+    setTimeout(() => b.remove(), 6600);
+  }
+}
+
+/* 핸드폰 화면 그리기. inStep = 핸드폰 단계(프롤로그)인지 */
+function phoneHTML(inStep) {
+  const st = SCRIPT[S.step], judgeLook = S.name === "심판자";
+  let body = "";
+  if (!PV.app) {
+    const apps = ["msg", "mail", "news"].concat(S.ph.boardOn ? ["board"] : []);
+    let btns = "";
+    if (inStep) {
+      const left = st.batches.length - S.batch;
+      btns = left > 0 ? `<button class="timebtn" data-act="time" type="button">시간 보내기</button>`
+                      : `<button class="timebtn red" data-act="done" type="button">${esc(st.done)}</button>`;
+    } else btns = `<button class="timebtn" data-act="close" type="button">내려놓기</button>`;
+    body = `<div class="ph-home ${judgeLook ? "judge" : ""}">
+      <div class="widget"><div class="big">${fmtClock(S.time)}</div><div class="small">${fmtDate(S.time)}</div></div>
+      <div class="apps">${apps.map(a => { const m = APP_META[a], u = unread(a); return `<button class="app" data-app="${a}" type="button"><span class="ic" style="background:${m.c}">${m.i}</span>${m.n}${u ? `<span class="badge">${u}</span>` : ""}</button>`; }).join("")}</div>
+      <div class="spacer"></div>${btns}</div>`;
+  } else body = phoneApp();
+  return `<div class="phone"><div class="ph-status"><span>${fmtClock(S.time)}</span><span>▂▄▆ 5G ▮▮▮▯</span></div><div class="ph-body">${body}</div></div>`;
+}
+function head(title) { return `<div class="ph-head"><button data-act="back" type="button">‹ 뒤로</button><b>${esc(title)}</b></div>`; }
+function phoneApp() {
+  const p = S.ph, a = PV.app, id = PV.id;
+  if (a === "msg") {
+    if (id && p.threads[id]) {
+      const th = p.threads[id]; th.unread = 0;
+      let last = "", out = "";
+      for (const m of th.msgs) { const d = fmtDate(m.t); if (d !== last) { out += `<div class="day">${d}</div>`; last = d; } out += `<div class="bub ${m.me ? "me" : ""}">${esc(m.text)}<small>${fmtClock(m.t)}</small></div>`; }
+      return head(th.name) + `<div class="chat">${out}</div>`;
+    }
+    const rows = p.torder.map(k => { const th = p.threads[k], m = th.msgs[th.msgs.length - 1];
+      return `<button class="ph-row" data-id="${k}" type="button"><span class="u ${th.unread ? "" : "r"}"></span><span class="t"><b>${esc(th.name)}</b><small>${esc(m.text)}</small></span><span class="d">${fmtShort(m.t)}</span></button>`; }).join("");
+    return head("메시지") + (rows || `<div class="ph-empty">메시지가 없습니다.</div>`);
+  }
+  if (a === "mail") {
+    if (id != null && p.mails[id]) { const m = p.mails[id]; m.read = true; return head(m.subject) + `<div class="mailbody"><small style="color:var(--muted)">${esc(m.from)} · ${esc(m.date)}</small>\n\n${esc(m.body)}</div>`; }
+    return head("받은편지함") + (p.mails.map((m, k) => `<button class="ph-row" data-id="${k}" type="button"><span class="u ${m.read ? "r" : ""}"></span><span class="t"><b>${esc(m.from)} · ${esc(m.subject)}</b><small>${esc(m.body.split("\n")[0])}</small></span><span class="d">${esc(m.date)}</span></button>`).join("") || `<div class="ph-empty">메일이 없습니다.</div>`) +
+      (p.mails.length ? `<div class="ph-empty">보낸편지함: 0통</div>` : "");
+  }
+  if (a === "news" || a === "board") {
+    const list = a === "news" ? p.news : p.board;
+    const item = id != null ? list.find(n => (n.id || n.title) === id) : null;
+    if (item) {
+      const first = !item.read; item.read = true;
+      if (first && item.voice) setTimeout(() => voice(item.voice), 500);
+      const cm = (item.cmts || []).map(c => `<div class="cmt"><small>${esc(c[0])}</small>${esc(c[1])}</div>`).join("");
+      return head(a === "news" ? "뉴스" : "죗값 게시판") + `<div class="article"><div class="press">${esc(item.press || item.by)} · ${esc(item.stamp || fmtShort(item.t))}${item.rec ? " · " + esc(item.rec) : ""}</div><h4>${esc(item.title)}</h4><p>${esc(item.body)}</p>${cm ? `<div class="cmts">${cm}</div>` : ""}</div>`;
+    }
+    return head(a === "news" ? "뉴스" : "죗값 게시판") + (list.map(n => `<button class="ph-row" data-id="${esc(n.id || n.title)}" type="button"><span class="u ${n.read ? "r" : ""}"></span><span class="t"><b>${esc(n.title)}</b><small>${esc(n.press || n.by)}</small></span><span class="d">${esc(n.stamp ? n.stamp.split(" (")[0] : fmtShort(n.t))}</span></button>`).join("") || `<div class="ph-empty">아직 아무것도 없습니다.</div>`);
+  }
+  return "";
+}
+function bindPhone(root, inStep) {
+  root.querySelectorAll("[data-app]").forEach(b => b.onclick = () => { SFX.click(); PV.app = b.dataset.app; PV.id = null; refreshPhone(); });
+  root.querySelectorAll(".ph-row").forEach(b => b.onclick = () => { PV.id = PV.app === "mail" ? +b.dataset.id : b.dataset.id; refreshPhone(); });
+  root.querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
+    const act = b.dataset.act;
+    if (act === "back") { if (PV.id != null) PV.id = null; else PV.app = null; refreshPhone(); }
+    else if (act === "close") closePhone();
+    else if (act === "time") advanceBatch();
+    else if (act === "done") stepDone();
+  });
+}
+function refreshPhone() {
+  save();
+  if (PV.open) { const ov = $(".phone-ov"); if (ov) { ov.innerHTML = phoneHTML(false); bindPhone(ov, false); } updateTopDot(); return; }
+  const stage = $(".phone-stage"); if (stage) { stage.innerHTML = phoneHTML(true); bindPhone(stage, true); const t = $(".top"); if (t) { t.outerHTML = topHTML(); bindTop(); } }
+}
+function openPhone(app, id) {
+  PV.app = app || null; PV.id = app === "mail" ? null : (id || null);
+  if (SCRIPT[S.step].type === "phone") { refreshPhone(); return; }
+  PV.open = true;
+  let ov = $(".phone-ov"); if (!ov) { ov = document.createElement("div"); ov.className = "phone-ov"; document.body.appendChild(ov); }
+  ov.onclick = e => { if (e.target === ov) closePhone(); };
+  refreshPhone();
+}
+function closePhone() { PV.open = false; PV.app = null; PV.id = null; const ov = $(".phone-ov"); if (ov) ov.remove(); render(); }
+function updateTopDot() { const b = $("#tb-phone"); if (!b) return; const u = totalUnread(); b.querySelector(".dot") ? (u || b.querySelector(".dot").remove()) : (u && b.insertAdjacentHTML("beforeend", `<span class="dot"></span>`)); }
+
+/* ---------- 원룸 ---------- */
+function baseSpots(st) {
+  return {
+    fridge: [{ text: "생수와 반찬통 몇 개." }].concat(st < 4 ? [{ doc: "fridge" }] : []),
+    kitchen: [{ text: "싱크대. 그 녀석은 설거지를 미룬 적이 없다." }],
+    calendar: [{ doc: "calendar" }],
+    apology: st < 4 ? [{ doc: "apology" }] : [{ doc: "scraps" }],
+    wall: [{ doc: "rules" }].concat(st >= 4 ? [{ doc: "list" }] : [], [{ text: "표적의 사진과 동선은 프로필에 정리해 두었다." }]),
+    bookshelf: [{ text: "교도소에서 읽은 책들. 철학, 법, 회로이론." }, { doc: "textbook" }],
+    desk: [{ action: "phone" }, { item: "phone" }],
+    drawer: [{ doc: "release" }, { doc: "visits" }, { doc: "letter" }, { item: "idcard" }],
+    safe: [{ text: "금고. 이제 비어 있다." }],
+    bed: [{ text: "침대 밑. 먼지뿐이다." }],
+    closet: [{ text: "옷 몇 벌. 출소할 때 입은 옷." }],
+    mirror: [{ doc: "mirror" }],
+    toolbox: st <= 1 ? [{ text: "공구함. 자물쇠가 걸려 있다. 언제부터였을까." }] : [{ text: "펜치는 한상철이 가져가 처리했다." }, { item: "hammer" }, { item: "driver" }],
+    trash: [{ text: "비어 있다. 그 녀석은 쓰레기도 매일 버린다." }]
+  };
+}
+function curJudge() { const st = SCRIPT[S.step]; return st.type === "judge" ? JUDGE[st.j] : null; }
+function spotEntries(id) {
+  const J = curJudge(), base = baseSpots(S.stage);
+  return (J && J.replace[id]) || base[id] || [];
+}
+function roomStage() { return S.stage; }
+const SPOT_LABEL = id => (SPOTS.find(s => s.id === id) || {}).label || id;
+
+function topHTML() {
+  const st = SCRIPT[S.step], J = curJudge(), u = totalUnread();
+  const chap = J ? `${J.label} · ${J.target}` : st.type === "room" ? "원룸" : "";
+  return `<div class="top"><span class="when"><b>${fmtDate(S.time)}</b> ${fmtClock(S.time)}</span><span class="chap">${esc(chap)}</span>
+    <span class="who ${S.name === "심판자" ? "judge" : ""}">${esc(S.name)}</span>
+    ${J ? `<button class="tb only-narrow" id="tb-prof" type="button">표적</button>` : ""}
+    <button class="tb" id="tb-phone" type="button">핸드폰${u ? `<span class="dot"></span>` : ""}</button>
+    <button class="tb" id="tb-log" type="button">속마음</button>
+    <button class="tb" id="tb-menu" type="button">메뉴</button></div>`;
+}
+function profileHTML() {
+  const J = curJudge();
+  if (!J) {
+    const done = [1, 2, 3, 4].filter(k => S.step > SCRIPT.findIndex(x => x.type === "judge" && x.j === k));
+    return `<div class="eyebrow">심판 기록</div><h2>${done.length ? "다음을 기다린다" : "아직 아무도"}</h2>
+      <div class="log">${done.map(k => `<div><span>${esc(JUDGE[k].target)}</span><span class="done">심판</span></div>`).join("") || `<p class="empty">한상철의 연락을 기다린다. 방을 둘러보거나 핸드폰을 확인하자.</p>`}</div>`;
+  }
+  const P = J.profile;
+  return `<div class="sheet-close"><button class="btn" id="prof-x" type="button" style="min-width:0;padding:8px 14px">닫기</button></div>
+    <div class="eyebrow">${esc(P.eyebrow)}</div><h2>${esc(P.name)}</h2>
+    <div class="photo">${portraitSVG(J.scene)}</div>
+    <dl>${P.rows.map(r => `<div><dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd></div>`).join("")}</dl>
+    <div class="han"><b>한상철 메모</b>${esc(P.han)}</div>`;
+}
+function bottomHTML() {
+  const st = SCRIPT[S.step], J = curJudge();
+  if (J) {
+    const bag = S.prep.bag;
+    let slots = "";
+    for (let k = 0; k < J.slots; k++) slots += bag[k] ? `<button class="slot full" data-out="${bag[k]}" type="button" title="빼기">${esc(ITEMS[bag[k]].n)}</button>` : `<span class="slot">빈 칸</span>`;
+    return `<div class="bottom"><div class="bag"><span class="bl">가방 ${bag.length}/${J.slots}</span>${slots}</div><button class="btn red go" id="go" type="button">나간다</button></div>`;
+  }
+  const left = st.batches.length - S.batch;
+  return `<div class="bottom"><span class="hint">${left > 0 ? "방을 둘러보거나 시간을 보낸다." : "결정할 때다."}</span>${left > 0 ? `<button class="btn go" id="tick" type="button">시간 보내기</button>` : `<button class="btn red go" id="done" type="button">${esc(st.done)}</button>`}</div>`;
+}
+function renderRoom() {
+  const app = $("#app");
+  app.innerHTML = topHTML() + `<div class="main"><aside class="profile" id="prof">${profileHTML()}</aside><div class="roomwrap" id="rw">${roomSVG(S.stage, totalUnread() > 0)}</div></div>` + bottomHTML();
+  bindTop();
+  const rw = $("#rw"); if (rw.scrollWidth > rw.clientWidth) rw.scrollLeft = (rw.scrollWidth - rw.clientWidth) / 2;
+  app.querySelectorAll(".hot").forEach(g => { g.onclick = () => openSpot(g.dataset.spot); g.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSpot(g.dataset.spot); } }; });
+  app.querySelectorAll("[data-out]").forEach(b => b.onclick = () => { takeOut(b.dataset.out); });
+  const tick = $("#tick"); if (tick) tick.onclick = advanceBatch;
+  const dn = $("#done"); if (dn) dn.onclick = stepDone;
+  const go = $("#go"); if (go) go.onclick = confirmGo;
+}
+function bindTop() {
+  const p = $("#tb-phone"); if (p) p.onclick = () => openPhone();
+  const l = $("#tb-log"); if (l) l.onclick = openLog;
+  const m = $("#tb-menu"); if (m) m.onclick = openMenu;
+  const pr = $("#tb-prof"); if (pr) pr.onclick = () => $("#prof").classList.add("sheet");
+  const px = $("#prof-x"); if (px) px.onclick = () => $("#prof").classList.remove("sheet");
+}
+
+/* ---------- 살펴보기 창 ---------- */
+let OV = null; // { spot, view: 'spot'|'doc'|'lock', id, input }
+function ovEl() { let o = $(".ov"); if (!o) { o = document.createElement("div"); o.className = "ov"; document.body.appendChild(o); o.onclick = e => { if (e.target === o) closeOv(); }; } return o; }
+function closeOv() { OV = null; const o = $(".ov"); if (o) o.remove(); renderRoom(); }
+function openSpot(id) { SFX.click(); OV = { spot: id, view: "spot" }; drawOv(); }
+
+function inBag(id) { return S.prep && S.prep.bag.includes(id); }
+function expand(entries) {
+  // 열린 잠금의 내용물을 펼친다
+  const out = [];
+  for (const e of entries) {
+    out.push(e);
+    if (e.lock && S.prep && S.prep.open[e.lock]) {
+      const L = LOCKS[e.lock];
+      (L.kind === "order" ? [{ item: L.result }] : L.contents).forEach(c => out.push(c));
+    }
+  }
+  return out;
+}
+function entryHTML(e) {
+  const J = curJudge();
+  if (e.text) return `<div class="entry txt">${esc(e.text)}</div>`;
+  if (e.action === "phone") return `<div class="entry"><span class="kind">폰</span><span class="et"><b>핸드폰 보기</b><small>메시지, 메일, 뉴스${S.ph.boardOn ? ", 게시판" : ""}</small></span><button class="eb" data-phone type="button">보기</button></div>`;
+  if (e.doc) { const D = DOCS[e.doc]; return `<div class="entry"><span class="kind">문서</span><span class="et"><b>${esc(D.title)}</b>${S.seen[e.doc] ? "<small>읽음</small>" : ""}</span><button class="eb" data-doc="${e.doc}" type="button">읽기</button></div>`; }
+  if (e.item) {
+    const I = ITEMS[e.item], on = inBag(e.item);
+    const btn = J ? `<button class="eb ${on ? "on" : ""}" data-item="${e.item}" type="button">${on ? "가방에서 빼기" : "가방에 넣기"}</button>` : `<span class="eb" style="opacity:.5">지금은 필요 없다</span>`;
+    return `<div class="entry"><span class="kind">물건</span><span class="et"><b>${esc(I.n)}</b><small>${esc(I.d)}</small></span>${btn}</div>`;
+  }
+  if (e.lock) {
+    const L = LOCKS[e.lock], open = S.prep && S.prep.open[e.lock];
+    if (open) return `<div class="entry"><span class="kind">봉인</span><span class="et"><b>${esc(L.title)}</b><small>풀었다.</small></span></div>`;
+    return `<div class="entry locked"><span class="kind">봉인</span><span class="et"><b>${esc(L.title)}</b><small>그 녀석이 걸어 둔 봉인.</small></span><button class="eb on" data-lock="${e.lock}" type="button">풀어 본다</button></div>`;
+  }
+  return "";
+}
+
+const COLORS = [["검정", "#111"], ["갈색", "#7a4a26"], ["빨강", "#c0392b"], ["주황", "#e67e22"], ["노랑", "#f1c40f"], ["초록", "#27ae60"], ["파랑", "#2c6fd1"], ["보라", "#8e44ad"], ["회색", "#8d8d8d"], ["흰색", "#f4f4f4"]];
+function textbookHTML() {
+  return `<div class="doc print">『회로이론』 부록 · 저항 색 코드
+<div class="cc">${COLORS.map((c, k) => `<div><i style="background:${c[1]}"></i>${c[0]} ${k}</div>`).join("")}</div>여백에 연필 글씨:
+<span class="hi">다시는 이걸로 사람을 해치지 않는다.</span></div>`;
+}
+function resistorsHTML() {
+  const bands = [1, 4, 6, 1];
+  return `<div class="res-row">${bands.map(b => `<svg viewBox="0 0 110 32" aria-label="저항"><line x1="0" y1="16" x2="110" y2="16" stroke="#9aa0a8" stroke-width="2"/><rect x="25" y="6" width="60" height="20" rx="8" fill="#d8c9a3"/><rect x="40" y="6" width="12" height="20" fill="${COLORS[b][1]}"/></svg>`).join("")}</div><p class="desc">뚜껑에 저항 네 개가 테이프로 붙어 있다. 저마다 색 띠가 하나씩.</p>`;
+}
+function docHTML(id) {
+  const D = DOCS[id];
+  if (D.style === "textbook") return textbookHTML();
+  const txt = typeof D.text === "function" ? D.text(S.stage) : D.text;
+  return `<div class="doc ${D.style}">${esc(txt)}</div>`;
+}
+function lockHTML(id) {
+  const L = LOCKS[id];
+  let html = `<div class="lock-note">${esc(L.note)}</div>`;
+  if (L.resistors) html += resistorsHTML();
+  if (L.kind === "digits") {
+    const v = OV.input || "";
+    html += `<div class="digits" id="dg">${Array.from({ length: L.len }, (_, k) => `<span>${esc(v[k] || "")}</span>`).join("")}</div>
+      <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-n="${n}" type="button">${n}</button>`).join("")}<button class="wide" data-n="del" type="button">지우기</button><button data-n="0" type="button">0</button><button class="wide" data-n="ok" type="button">확인</button></div>`;
+
+  } else if (L.kind === "text") {
+    html += `<form class="txtlock" id="tl"><input id="tlin" type="text" autocomplete="off" placeholder="이름을 적는다" aria-label="답"><button class="btn" type="submit" style="min-width:0">확인</button></form>`;
+  } else if (L.kind === "order") {
+    const placed = OV.order || [];
+    html += `<p class="desc">조각을 이어 붙일 순서대로 누른다.</p><div class="strips">${L.shown.map(k => `<button class="strip ${placed.includes(k) ? "used" : ""}" data-piece="${k}" type="button">${esc(L.pieces[k])}</button>`).join("")}</div>
+      <div class="placed">${placed.map(k => `<div class="strip">${esc(L.pieces[k])}</div>`).join("") || `<span class="desc" style="margin:0">아직 붙인 조각이 없다.</span>`}</div>
+      <div class="row"><button class="btn" data-reset type="button" style="min-width:0">다시 붙인다</button></div>`;
+  }
+  return html;
+}
+function drawOv() {
+  const o = ovEl();
+  let title, body, back = false;
+  if (OV.view === "spot") { title = SPOT_LABEL(OV.spot); body = `<div class="entries">${expand(spotEntries(OV.spot)).map(entryHTML).join("")}</div>`; }
+  else if (OV.view === "doc") { title = DOCS[OV.id].title; body = docHTML(OV.id); back = true; }
+  else { title = LOCKS[OV.id].title; body = lockHTML(OV.id); back = true; }
+  o.innerHTML = `<div class="card"><h3>${esc(title)}<button class="x" data-x type="button">닫기</button></h3>${body}${back ? `<div class="backlink"><button class="btn" data-back type="button" style="min-width:0">‹ 돌아가기</button></div>` : ""}</div>`;
+  bindOv(o);
+}
+
+function bindOv(o) {
+  o.querySelectorAll("[data-x]").forEach(b => b.onclick = closeOv);
+  o.querySelectorAll("[data-back]").forEach(b => b.onclick = () => { OV.view = "spot"; drawOv(); });
+  o.querySelectorAll("[data-phone]").forEach(b => b.onclick = () => { OV = null; o.remove(); openPhone(); });
+  o.querySelectorAll("[data-doc]").forEach(b => b.onclick = () => {
+    const id = b.dataset.doc, first = !S.seen[id]; S.seen[id] = true; save();
+    OV.view = "doc"; OV.id = id; drawOv();
+    if (first && DOCS[id].voice) setTimeout(() => voice(DOCS[id].voice), 600);
+  });
+  o.querySelectorAll("[data-item]").forEach(b => b.onclick = () => toggleItem(b.dataset.item));
+  o.querySelectorAll("[data-lock]").forEach(b => b.onclick = () => { OV.view = "lock"; OV.id = b.dataset.lock; OV.input = ""; OV.order = []; drawOv(); });
+  o.querySelectorAll("[data-n]").forEach(b => b.onclick = () => padPress(b.dataset.n));
+  const tl = $("#tl", o); if (tl) { tl.onsubmit = e => { e.preventDefault(); tryLock($("#tlin", o).value); }; setTimeout(() => $("#tlin", o).focus(), 50); }
+  o.querySelectorAll("[data-piece]").forEach(b => b.onclick = () => {
+    OV.order.push(+b.dataset.piece); SFX.click();
+    const L = LOCKS[OV.id];
+    if (OV.order.length === L.pieces.length) { if (OV.order.every((k, n) => k === n)) unlock(OV.id); else { SFX.wrong(); voice(WRONG[Math.floor(Math.random() * WRONG.length)]); toast("문장이 이어지지 않는다."); OV.order = []; drawOv(); } }
+    else drawOv();
+  });
+  o.querySelectorAll("[data-reset]").forEach(b => b.onclick = () => { OV.order = []; drawOv(); });
+}
+function padPress(n) {
+  const L = LOCKS[OV.id]; SFX.click();
+  if (n === "del") OV.input = OV.input.slice(0, -1);
+  else if (n === "ok") { tryLock(OV.input); return; }
+  else if (OV.input.length < L.len) OV.input += n;
+  drawOv();
+}
+document.addEventListener("keydown", e => {
+  if (!OV || OV.view !== "lock" || LOCKS[OV.id].kind !== "digits") return;
+  if (/^[0-9]$/.test(e.key)) padPress(e.key); else if (e.key === "Backspace") padPress("del"); else if (e.key === "Enter") padPress("ok");
+});
+function tryLock(v) {
+  const L = LOCKS[OV.id], norm = String(v).trim().toLowerCase().replace(/\s+/g, "");
+  if (norm === L.answer) { unlock(OV.id); return; }
+  SFX.wrong();
+  voice((L.special && L.special[norm]) || WRONG[Math.floor(Math.random() * WRONG.length)]);
+  OV.input = ""; drawOv();
+  const dg = $("#dg"); if (dg) dg.classList.add("bad");
+}
+function unlock(id) {
+  const L = LOCKS[id]; S.prep.open[id] = true; save(); SFX.open();
+  if (L.openVoice) setTimeout(() => voice(L.openVoice), 400);
+  OV.view = "spot"; drawOv();
+}
+function toggleItem(id) {
+  const J = curJudge(), bag = S.prep.bag;
+  if (bag.includes(id)) bag.splice(bag.indexOf(id), 1);
+  else { if (bag.length >= J.slots) { toast("가방이 가득 찼다. 무언가를 빼야 한다."); return; } bag.push(id); SFX.click(); }
+  save(); drawOv();
+}
+function takeOut(id) { const bag = S.prep.bag; bag.splice(bag.indexOf(id), 1); save(); renderRoom(); }
+
+/* ---------- 진행 ---------- */
+function render() {
+  const st = SCRIPT[S.step];
+  $("#notif").innerHTML = "";
+  if (st.type === "title") return renderTitle();
+  if (st.type === "phone") { $("#app").innerHTML = topHTML() + `<div class="phone-stage">${phoneHTML(true)}</div>`; bindTop(); bindPhone($(".phone-stage"), true); return; }
+  if (st.type === "room" || st.type === "judge") { if (S.phase === "scene") return renderScene(); return renderRoom(); }
+  if (st.type === "narr") { $("#app").innerHTML = ""; return; }
+}
+function enterStep() {
+  const st = SCRIPT[S.step];
+  S.batch = 0; S.phase = null; PV.app = null; PV.id = null;
+  if (st.t) S.time = st.t;
+  if (st.name) S.name = st.name;
+  if (st.stage != null) S.stage = st.stage;
+  if (st.type === "judge") {
+    const J = JUDGE[st.j]; S.time = J.t; S.stage = J.stage; S.name = "심판자";
+    S.prep = { j: st.j, bag: [], open: {} };
+    store(CP_KEY, S);
+  }
+  save(); render();
+  if (st.type === "narr") showNarr(st.lines, next);
+  if (st.type === "final") runFinal();
+  if (st.type === "end") runEnd();
+}
+function next() { S.step++; enterStep(); }
+function advanceBatch() {
+  const st = SCRIPT[S.step];
+  if (S.batch >= st.batches.length) return;
+  const b = st.batches[S.batch++];
+  deliver(b, () => { if (SCRIPT[S.step].type === "phone") refreshPhone(); else if (!PV.open) renderRoom(); else refreshPhone(); const tb = $("#tb-phone"); if (tb) tb.classList.add("buzz"); });
+}
+function stepDone() { PV.open = false; const ov = $(".phone-ov"); if (ov) ov.remove(); next(); }
+
+function renderTitle() {
+  const has = fetchSaved(SAVE_KEY);
+  $("#app").innerHTML = `<div class="title-screen"><h1>물때<span>2</span></h1><p class="sub">죗값</p><p class="period">202×년 7월 14일 ~ 9월 15일</p>
+    <div class="stack"><button class="btn red" id="new" type="button">처음부터</button><button class="btn" id="cont" type="button" ${has && has.step > 0 ? "" : "disabled"}>이어하기</button><button class="btn" id="slots" type="button" ${anySlot() ? "" : "disabled"}>저장 슬롯에서 불러오기</button></div>
+    <p class="tip">「물때」의 4년 뒤 이야기입니다. 1편을 먼저 하면 더 많은 것이 보입니다.<br>진행은 이 브라우저에 자동 저장됩니다. 소리가 납니다.<br>위험한 장면은 직접 보여 주지 않고 돌려서 표현합니다.</p></div>`;
+  $("#new").onclick = () => { audio(); S = newState(); next(); };
+  $("#slots").onclick = () => { audio(); openSlots(false); };
+  $("#cont").onclick = () => { audio(); const sv = fetchSaved(SAVE_KEY); if (!sv) return; S = sv; resume(); };
+}
+function resume() {
+  const st = SCRIPT[S.step];
+  if (st.type === "narr") { render(); showNarr(st.lines, next); return; }
+  if (st.type === "final" || st.type === "end") { enterStep(); return; }
+  if (st.type === "judge" && S.phase === "scene") S.phase = null;
+  render();
+}
+function openLog() {
+  const o = ovEl(); OV = { view: "log" };
+  o.innerHTML = `<div class="card"><h3>속마음<button class="x" data-x type="button">닫기</button></h3><p class="desc">지나간 목소리들. 푸른 글씨는 그 녀석, 붉은 글씨는 나.</p><div class="vlog">${S.voiceLog.slice().reverse().map(v => `<div class="${voiceKind(v.s)}"><small>${fmtShort(v.t)}</small>${esc(voiceText(v.s))}</div>`).join("") || `<p class="desc">아직 없다.</p>`}</div></div>`;
+  o.querySelector("[data-x]").onclick = () => { OV = null; o.remove(); };
+}
+function openMenu() {
+  const o = ovEl(); OV = { view: "menu" };
+  const J = curJudge();
+  o.innerHTML = `<div class="card"><h3>메뉴<button class="x" data-x type="button">닫기</button></h3><div class="entries">
+    ${J ? `<div class="entry"><span class="et"><b>이 심판 준비를 처음부터</b><small>가방과 봉인이 처음 상태로 돌아간다.</small></span><button class="eb" id="m-cp" type="button">다시</button></div>` : ""}
+    <div class="entry"><span class="et"><b>저장 슬롯</b><small>지금 시점을 저장하거나, 저장한 시점으로 돌아간다.</small></span><button class="eb" id="m-slots" type="button">열기</button></div>
+    <div class="entry"><span class="et"><b>타이틀로</b><small>진행은 저장되어 있다.</small></span><button class="eb" id="m-title" type="button">이동</button></div></div></div>`;
+  o.querySelector("[data-x]").onclick = () => { OV = null; o.remove(); };
+  $("#m-slots", o).onclick = () => openSlots(true);
+  const cp = $("#m-cp", o); if (cp) cp.onclick = () => { OV = null; o.remove(); restoreCheckpoint(); };
+  $("#m-title", o).onclick = () => { OV = null; o.remove(); save(); S.step = 0; renderTitle(); S = fetchSaved(SAVE_KEY) || newState(); };
+}
+function restoreCheckpoint() { const cp = fetchSaved(CP_KEY); if (!cp) return; S = cp; S.phase = null; save(); render(); }
+
+/* ---------- 출발과 현장 ---------- */
+function confirmGo() {
+  const J = curJudge(), bag = S.prep.bag;
+  const o = ovEl(); OV = { view: "go" };
+  o.innerHTML = `<div class="card"><h3>나간다<button class="x" data-x type="button">닫기</button></h3>
+    <p class="desc">한 번 나가면 돌아올 수 없다. 가방 속:</p>
+    <div class="entries">${bag.length ? bag.map(id => `<div class="entry"><span class="kind">물건</span><span class="et"><b>${esc(ITEMS[id].n)}</b></span></div>`).join("") : `<div class="entry txt">가방이 비어 있다.</div>`}</div>
+    <div class="row"><button class="btn red" id="go-yes" type="button">나간다</button><button class="btn" id="go-no" type="button">더 준비한다</button></div></div>`;
+  o.querySelector("[data-x]").onclick = closeOv;
+  $("#go-no", o).onclick = closeOv;
+  $("#go-yes", o).onclick = () => {
+    OV = null; o.remove();
+    const miss = J.need.some(n => !bag.includes(n)), trap = bag.some(n => J.trap.includes(n));
+    S.prep.result = miss ? "miss" : trap ? "trap" : "ok";
+    save();
+    showNarr(J.pre, () => { S.phase = "scene"; renderScene(); });
+  };
+}
+function renderScene() {
+  const st = SCRIPT[S.step];
+  const isFinal = st.type === "final";
+  const J = isFinal ? null : curJudge();
+  const kind = isFinal ? "mirror" : J.scene;
+  $("#voice").innerHTML = "";
+  $("#app").innerHTML = `<div class="scene" id="sc">${sceneSVG(kind)}
+    <div class="cap"><b>${esc(isFinal ? "거울 앞" : J.sceneTitle)}</b>${esc(isFinal ? "9월 15일 · 자정" : J.sceneCap)}</div>
+    ${isFinal ? "" : `<div class="bagline">가방: ${S.prep.bag.map(id => esc(ITEMS[id].n)).join(" · ") || "비어 있음"}</div>`}</div>`;
+  if (isFinal) return;
+  if (S.prep.result !== "ok") { setTimeout(() => failJudge(S.prep.result), 2600); return; }
+  setTimeout(() => placeJudgeButton(INTERFERE[SCRIPT[S.step].j] || [], () => judgeSuccess(J), st.j === 4 ? "-네가 못 낸 답, 내가 내줄게." : null), 1200);
+}
+/* 첫 번째 인격이 끼어든다: 버튼이 흔들리거나 사라졌다 다른 곳에 나타난다 */
+function placeJudgeButton(lines, onPress, finalLine) {
+  const sc = $("#sc"); if (!sc) return;
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "judge-btn"; b.textContent = "심판한다";
+  sc.appendChild(b);
+  let n = 0;
+  const quake = ms => { sc.classList.remove("quake"); void sc.offsetWidth; sc.classList.add("quake"); clearTimeout(sc.qh); sc.qh = setTimeout(() => sc.classList.remove("quake"), ms); try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+  if (lines.length === 1) { b.classList.add("shake"); quake(1600); voice(lines[0]); setTimeout(() => b.classList.remove("shake"), 1600); }
+  b.onclick = () => {
+    if (lines.length > 1 && n < lines.length) {
+      voice(lines[n++]); SFX.wrong(); b.classList.add("shake"); quake(700);
+      setTimeout(() => { b.classList.remove("shake"); b.classList.add("gone"); }, 450);
+      setTimeout(() => { b.style.left = (18 + Math.random() * 64) + "%"; b.style.top = (30 + Math.random() * 48) + "%"; b.classList.remove("gone"); }, 1300);
+      if (n === lines.length && finalLine) setTimeout(() => voice(finalLine), 1300);
+      return;
+    }
+    b.disabled = true; onPress();
+  };
+}
+function judgeSuccess(J) {
+  const lines = J.success.concat([{ phrase: J.phrase }, { verdict: J.verdict }]);
+  showNarr(lines, () => { S.prep = null; S.phase = null; next(); });
+}
+function failJudge(kind) {
+  showNarr([FAIL_REASON[kind]].concat(FAIL.lines), () => {
+    showEndCard(`<div class="lastline red">${esc(FAIL.last)}</div>`, [
+      { label: "이 심판의 준비로 돌아가기", red: true, fn: restoreCheckpoint },
+      { label: "타이틀로", fn: () => { const cp = fetchSaved(CP_KEY); if (cp) store(SAVE_KEY, cp); S = newState(); renderTitle(); } }
+    ]);
+  }, { keep: true });
+}
+
+/* ---------- 저장 슬롯 3개 (이 브라우저에 저장) ---------- */
+const SLOT_KEY = k => "muldae2_slot" + k;
+function anySlot() { return [1, 2, 3].some(k => fetchSaved(SLOT_KEY(k))); }
+function slotLabel(sv) {
+  const st = SCRIPT[sv.S.step] || {};
+  const where = st.type === "judge" ? JUDGE[st.j].label + " 준비 중" : st.type === "phone" ? "출소 직후 (핸드폰)" : st.type === "room" ? "원룸" : "진행 중";
+  return `${fmtDate(sv.S.time)} ${fmtClock(sv.S.time)} · ${where}`;
+}
+function openSlots(canSave) {
+  const o = ovEl(); OV = { view: "slots", confirm: null };
+  const draw = () => {
+    const rows = [1, 2, 3].map(k => {
+      const sv = fetchSaved(SLOT_KEY(k));
+      const saveBtn = canSave ? `<button class="eb ${OV.confirm === k ? "on" : ""}" data-save="${k}" type="button">${OV.confirm === k ? "덮어쓰기" : "저장"}</button>` : "";
+      const loadBtn = sv ? `<button class="eb" data-load="${k}" type="button">불러오기</button>` : "";
+      return `<div class="entry"><span class="kind">${k}</span><span class="et"><b>${sv ? esc(slotLabel(sv)) : "비어 있음"}</b>${sv ? `<small>저장한 때: ${esc(sv.at)}</small>` : ""}</span>${saveBtn}${loadBtn}</div>`;
+    }).join("");
+    o.innerHTML = `<div class="card"><h3>저장 슬롯<button class="x" data-x type="button">닫기</button></h3>
+      <p class="desc">${canSave ? "지금 시점을 슬롯에 저장하거나, 저장해 둔 시점으로 돌아간다." : "저장해 둔 시점으로 돌아간다."} 저장은 이 브라우저에만 남는다.</p>
+      <div class="entries">${rows}</div>${OV.confirm ? `<p class="desc" style="margin-top:12px">이미 저장된 슬롯이다. 한 번 더 누르면 덮어쓴다.</p>` : ""}</div>`;
+    o.querySelector("[data-x]").onclick = () => { OV = null; o.remove(); };
+    o.querySelectorAll("[data-save]").forEach(b => b.onclick = () => {
+      const k = +b.dataset.save;
+      if (fetchSaved(SLOT_KEY(k)) && OV.confirm !== k) { OV.confirm = k; draw(); return; }
+      const now = new Date();
+      store(SLOT_KEY(k), { S: clone(S), cp: fetchSaved(CP_KEY), at: `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}` });
+      OV.confirm = null; SFX.open(); toast(`슬롯 ${k}에 저장했다.`); draw();
+    });
+    o.querySelectorAll("[data-load]").forEach(b => b.onclick = () => {
+      const sv = fetchSaved(SLOT_KEY(+b.dataset.load)); if (!sv) return;
+      OV = null; o.remove(); PV.open = false; const pov = $(".phone-ov"); if (pov) pov.remove();
+      S = clone(sv.S); S.phase = null; if (sv.cp) store(CP_KEY, sv.cp);
+      save(); toast(`슬롯 ${b.dataset.load}을 불러왔다.`); resume();
+    });
+  };
+  draw();
+}
+
+/* ---------- 마지막 판결과 엔딩 ---------- */
+function runFinal() {
+  S.stage = 5; save();
+  showNarr(FINAL.pre, () => {
+    renderScene();
+    showNarr(FINAL.mirror, () => {
+      placeJudgeButton([], () => {
+        showNarr([{ blackout: true }, { verdict: FINAL.verdict }], next);
+      });
+    });
+  });
+}
+function runEnd() {
+  try { localStorage.removeItem(CP_KEY); } catch (e) {}
+  showNarr(FINAL.ending.concat([{ title: "심판자의 탄생", small: "진엔딩" }]), () => {
+    showEndCard(`<div class="ln date" style="text-align:center">뉴스 · 앵커 음성</div><div class="lastline red">「${esc(FINAL.last)}」</div>`, [
+      { label: "타이틀로", fn: () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} S = newState(); renderTitle(); } }
+    ]);
+  }, { keep: true });
+}
+
+/* 시작 */
+window.__game = { get S() { return S; }, jump(i) { S.step = i; enterStep(); }, SCRIPT, JUDGE, LOCKS };
+render();
+
+</script>
+</body></html>
