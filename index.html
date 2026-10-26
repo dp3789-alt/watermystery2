@@ -33,6 +33,10 @@ input { font: inherit; }
 .title-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center;
   padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px));
   background: radial-gradient(ellipse at 50% 35%, #1b1d24 0%, var(--ink) 65%); }
+.title-screen { position: relative; overflow: hidden; }
+.title-screen > :not(.title-bg) { position: relative; }
+.title-bg { position: absolute; inset: 0; opacity: .55; pointer-events: none; }
+.title-bg svg { width: 100%; height: 100%; display: block; }
 .title-screen h1 { font-family: var(--f-verdict); font-weight: 800; font-size: clamp(52px, 14vw, 96px); letter-spacing: .18em; margin: 0; line-height: 1.1; padding-left: .18em; }
 .title-screen h1 span { color: var(--blood); }
 .title-screen .sub { font-family: var(--f-verdict); font-size: 19px; letter-spacing: .5em; color: var(--muted); margin: 0 0 4px; padding-left: .5em; }
@@ -806,7 +810,32 @@ const FAIL = {
   last: "법은 불합리함이 있음에도 불구하고 질서를 지켜야 한다."
 };
 
-/* 원룸 그림 (임시 SVG). 1000×600. 단계 st(0~5)에 따라 첫 번째 인격의 흔적이 줄어든다. */
+/* 공용 그림 도구: 필름 노이즈, 비네트, 번짐. p는 그림마다 다른 id 접두사 */
+function fxDefs(p) {
+  return `<filter id="${p}grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .6 0"/></filter>
+  <filter id="${p}blur" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="10"/></filter>
+  <filter id="${p}soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5"/></filter>
+  <radialGradient id="${p}vig" cx=".5" cy=".5" r=".72"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".8"/></radialGradient>`;
+}
+function fxOver(p, w, h, g = .1) {
+  return `<g pointer-events="none"><rect width="${w}" height="${h}" fill="url(#${p}vig)"/><rect width="${w}" height="${h}" filter="url(#${p}grain)" opacity="${g}"/></g>`;
+}
+function rnd(seed) { let r = seed; return () => (r = (r * 9301 + 49297) % 233280) / 233280; }
+/* 바닥에 깔리는 부드러운 그림자 */
+function shadow(cx, cy, rx, ry, o = .5) { return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#000" opacity="${o}" filter="url(#rsoft)"/>`; }
+/* 창밖 건물 불빛 */
+function cityLights(seed, n, x0, x1, y0, y1, color, w = 5, h = 4) {
+  const r = rnd(seed); let s = "";
+  for (let i = 0; i < n; i++) s += `<rect x="${(x0 + r() * (x1 - x0)).toFixed(0)}" y="${(y0 + r() * (y1 - y0)).toFixed(0)}" width="${w}" height="${h}" fill="${color}" opacity="${(0.25 + r() * 0.7).toFixed(2)}"/>`;
+  return s;
+}
+function skyline(seed, x0, x1, base, hmin, hmax, fill) {
+  const r = rnd(seed); let s = "", x = x0;
+  while (x < x1) { const w = 18 + r() * 34, h = hmin + r() * (hmax - hmin); s += `<rect x="${x.toFixed(0)}" y="${(base - h).toFixed(0)}" width="${(w + 1).toFixed(0)}" height="${h.toFixed(0)}" fill="${fill}"/>`; x += w; }
+  return s;
+}
+
+/* 원룸 그림. 1000×600. 단계 st(0~5)에 따라 첫 번째 인격의 흔적이 줄고, 벽의 물때와 붉은 기운이 짙어진다. */
 const SPOTS = [
   { id: "fridge",   label: "냉장고",      box: [30, 170, 110, 262], lab: [85, 160] },
   { id: "kitchen",  label: "주방",        box: [142, 296, 130, 136], lab: [207, 288] },
@@ -824,94 +853,175 @@ const SPOTS = [
   { id: "trash",    label: "쓰레기통",    box: [596, 398, 36, 40], lab: [614, 458] }
 ];
 
-function roomSVG(st, glowPhone) {
-  const day = st === 0 || st === 2;
-  const sky = day ? ["#5d6b7d", "#8a96a3"] : ["#0b1020", "#1b2133"];
-  const wall = ["#2a2c31", "#28292e", "#26262b", "#252226", "#241f22", "#221c1e"][st];
-  const postitPos = [[48,196],[98,250],[292,236],[402,108],[658,276],[848,316],[904,250],[450,200]];
-  const nPost = [8, 6, 4, 2, 0, 0][st];
-  let posts = "";
-  for (let i = 0; i < nPost; i++) {
-    const [x, y] = postitPos[i];
-    posts += `<g transform="translate(${x} ${y}) rotate(${(i * 37) % 11 - 5})"><rect width="30" height="28" fill="#e3d56f"/><text x="15" y="19" font-size="13" text-anchor="middle" class="hand-svg" fill="#3a3520">멈춰</text></g>`;
+/* 벽, 창, 바닥 */
+function roomBack(st, day) {
+  const wall = [["#3a3d44", "#25272c"], ["#34363d", "#212227"], ["#36363b", "#222125"], ["#352f33", "#211b1e"], ["#33292c", "#1e1517"], ["#30221f", "#1a0f10"]][st];
+  const sky = day ? ["#7d8ea3", "#c9c3b4"] : ["#05070f", "#1a2033"];
+  let s = `<linearGradient id="rwall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${wall[1]}"/><stop offset=".55" stop-color="${wall[0]}"/><stop offset="1" stop-color="${wall[1]}"/></linearGradient>
+  <linearGradient id="rsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
+  <linearGradient id="rfloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a221c"/><stop offset="1" stop-color="#120e0b"/></linearGradient>
+  <linearGradient id="rbeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${day ? "#fff1d0" : "#9fb4d8"}" stop-opacity="${day ? .22 : .1}"/><stop offset="1" stop-color="#fff1d0" stop-opacity="0"/></linearGradient>
+  <radialGradient id="rlamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf8a" stop-opacity=".42"/><stop offset=".6" stop-color="#ffcf8a" stop-opacity=".1"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1000" height="440" fill="url(#rwall)"/>`;
+  for (let x = 0; x < 1000; x += 24) s += `<rect x="${x}" y="0" width="1" height="436" fill="#fff" opacity=".025"/>`;
+  /* 물때: 천장 모서리에서 번져 내려오는 얼룩 */
+  const r = rnd(11), n = 3 + st * 2, sc = st >= 4 ? "#2e1c14" : "#14130f";
+  for (let i = 0; i < n; i++) {
+    const x = r() * 1000, w = 30 + r() * 60, h = 20 + r() * (30 + st * 18), o = (.22 + st * .05).toFixed(2);
+    s += `<ellipse cx="${x.toFixed(0)}" cy="6" rx="${w.toFixed(0)}" ry="${h.toFixed(0)}" fill="${sc}" opacity="${o}" filter="url(#rblur)"/>`;
+    for (let k = 0; k < 2; k++) { const dx = x + (r() - .5) * w, dl = h + r() * (40 + st * 25); s += `<path d="M${dx.toFixed(0)} ${(h * .6).toFixed(0)} q2 ${(dl / 2).toFixed(0)} 0 ${dl.toFixed(0)}" stroke="${sc}" stroke-width="${(1.5 + r() * 2).toFixed(1)}" opacity="${o}" fill="none" stroke-linecap="round"/>`; }
   }
-  const fallen = [0, 2, 4, 6, 8, 8][st];
-  for (let i = 0; i < Math.min(fallen, 5); i++) posts += `<rect x="${120 + i * 150}" y="${560 + (i % 2) * 14}" width="22" height="18" fill="#bfb35c" opacity=".55" transform="rotate(${i * 29 % 40 - 20} ${130 + i * 150} ${568})"/>`;
+  s += `<rect width="1000" height="10" fill="#15161a"/>`;
+  /* 창 */
+  s += `<rect x="430" y="54" width="172" height="152" fill="#1b1c20"/><rect x="436" y="60" width="160" height="140" fill="url(#rsky)"/>`;
+  s += day ? skyline(5, 436, 596, 200, 20, 70, "#5c6676") + skyline(9, 436, 596, 200, 8, 40, "#4a5260")
+           : skyline(5, 436, 596, 200, 30, 90, "#0c0f18") + cityLights(4, 26, 440, 590, 120, 196, "#f2c879", 3, 3) + `<circle cx="566" cy="84" r="9" fill="#d9dde6" opacity=".7"/>`;
+  s += `<rect x="436" y="60" width="160" height="140" fill="none" stroke="#4b4e57" stroke-width="5"/><rect x="514" y="60" width="4" height="140" fill="#4b4e57"/><rect x="430" y="200" width="172" height="8" fill="#55575f"/>
+  <path d="M426 50 h20 v160 q-8 6 -20 0z" fill="#4a3d3a" opacity=".9"/><path d="M606 50 h-20 v160 q8 6 20 0z" fill="#4a3d3a" opacity=".9"/><rect x="420" y="46" width="192" height="5" rx="2" fill="#2a2b30"/>`;
+  /* 바닥과 걸레받이 */
+  s += `<rect y="436" width="1000" height="164" fill="url(#rfloor)"/>`;
+  for (let i = -10; i <= 10; i++) s += `<line x1="${500 + i * 52}" y1="436" x2="${500 + i * 120}" y2="600" stroke="#000" stroke-opacity=".35" stroke-width="1.5"/>`;
+  for (const y of [470, 512, 560]) s += `<line x1="0" x2="1000" y1="${y}" y2="${y}" stroke="#000" stroke-opacity=".18"/>`;
+  s += `<rect y="428" width="1000" height="9" fill="#1a1a1e"/><rect y="428" width="1000" height="1.5" fill="#55575f" opacity=".5"/>`;
+  /* 창으로 드는 빛 */
+  s += `<path d="M436 200 L596 200 L700 600 L360 600 Z" fill="url(#rbeam)"/>`;
+  return s;
+}
 
-
-  let apology;
+/* 왼쪽: 냉장고, 주방, 일정표, 반성문 */
+function roomLeft(st) {
+  let s = shadow(86, 432, 64, 8, .6);
+  /* 냉장고 */
+  s += `<linearGradient id="rfr" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8b9099"/><stop offset=".35" stop-color="#a3a8b0"/><stop offset="1" stop-color="#5f646d"/></linearGradient>
+  <rect x="34" y="174" width="102" height="256" rx="7" fill="url(#rfr)"/><rect x="34" y="174" width="102" height="256" rx="7" fill="none" stroke="#2c2f35" stroke-width="2"/>
+  <rect x="34" y="268" width="102" height="4" fill="#41454d"/><rect x="122" y="196" width="5" height="54" rx="2" fill="#d5d8dd"/><rect x="122" y="286" width="5" height="70" rx="2" fill="#d5d8dd"/>
+  <rect x="40" y="180" width="10" height="244" fill="#fff" opacity=".12"/><rect x="38" y="430" width="94" height="4" fill="#1a1b1f"/>
+  <circle cx="58" cy="300" r="5" fill="#c0393f"/><rect x="88" y="306" width="22" height="16" fill="#e8e3d4" transform="rotate(4 99 314)"/>`;
+  /* 주방 */
+  s += `<rect x="146" y="304" width="122" height="126" fill="#3a3029"/><rect x="142" y="294" width="130" height="12" rx="2" fill="#77736c"/><rect x="142" y="294" width="130" height="3" fill="#a8a49b"/>
+  <rect x="152" y="314" width="52" height="108" fill="#43372f" stroke="#2a221d"/><rect x="210" y="314" width="52" height="108" fill="#43372f" stroke="#2a221d"/>
+  <rect x="196" y="350" width="3" height="18" fill="#a8916d"/><rect x="214" y="350" width="3" height="18" fill="#a8916d"/>
+  <rect x="164" y="286" width="44" height="9" rx="3" fill="#5d6068"/><path d="M226 270 q2 -14 14 -14 q12 0 12 12" fill="none" stroke="#9aa0a8" stroke-width="3"/><rect x="236" y="268" width="6" height="26" fill="#9aa0a8"/>
+  <path d="M168 280 h14 l-2 14 h-10z" fill="#c9c2b0"/><path d="M186 282 h12 l-2 12 h-8z" fill="#d1543d"/>
+  <rect x="150" y="214" width="116" height="4" fill="#4a3d33"/><rect x="156" y="218" width="2" height="10" fill="#4a3d33"/><rect x="258" y="218" width="2" height="10" fill="#4a3d33"/>`;
+  /* 일정표 */
+  s += `<circle cx="208" cy="90" r="2.5" fill="#888"/><path d="M208 90 L170 98 M208 90 L246 98" stroke="#777" stroke-width="1"/>
+  <rect x="166" y="98" width="84" height="102" fill="#e9e6dd"/><rect x="166" y="98" width="84" height="16" fill="#5d6b7a"/><text x="208" y="110" font-size="9" text-anchor="middle" fill="#e9e6dd">7 · 8 · 9</text>`;
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+    const k = r * 4 + c, done = k < 6, cut = st >= 3 && k === 6, gone = st >= 4 && k > 6;
+    s += `<rect x="${172 + c * 19}" y="${120 + r * 19}" width="16" height="15" fill="${gone ? "#d8d4ca" : "#cfd6de"}"/>`;
+    if (done) s += `<path d="M${175 + c * 19} ${128 + r * 19} l4 4 l7 -9" fill="none" stroke="#2c5bd1" stroke-width="1.6"/>`;
+    if (cut) s += `<line x1="${172 + c * 19}" x2="${188 + c * 19}" y1="${128 + r * 19}" y2="${128 + r * 19}" stroke="#7d1a1f" stroke-width="2"/>`;
+  }
+  /* 반성문 */
+  const paper = (x, y, w, h, rot) => `<g transform="rotate(${rot} ${x + w / 2} ${y + h / 2})"><rect x="${x + 3}" y="${y + 4}" width="${w}" height="${h}" fill="#000" opacity=".35"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e3dccb"/>`;
   if (st < 3) {
-    apology = `<rect x="286" y="70" width="110" height="150" fill="#ddd6c6"/><text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">반 성 문</text>`;
-    for (let i = 0; i < 9; i++) apology += `<line x1="298" x2="${384 - (i % 3) * 14}" y1="${106 + i * 11}" y2="${106 + i * 11}" stroke="#8a8477" stroke-width="2"/>`;
+    s += paper(286, 70, 110, 150, -1) + `<text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">반 성 문</text>`;
+    for (let i = 0; i < 9; i++) s += `<line x1="298" x2="${384 - (i % 3) * 14}" y1="${106 + i * 11}" y2="${106 + i * 11}" stroke="#7d776a" stroke-width="1.6"/>`;
+    s += `<circle cx="341" cy="74" r="3" fill="#b0242b"/></g>`;
   } else if (st < 4) {
-    apology = `<path d="M286 70 H396 V150 L382 160 L366 148 L350 166 L334 150 L318 168 L300 152 L286 160 Z" fill="#ddd6c6"/><text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">반 성 문</text>`;
-    for (let i = 0; i < 4; i++) apology += `<line x1="298" x2="372" y1="${106 + i * 11}" y2="${106 + i * 11}" stroke="#8a8477" stroke-width="2"/>`;
+    s += `<g transform="rotate(-2 341 120)"><path d="M286 70 H396 V150 L382 160 L366 148 L350 166 L334 150 L318 168 L300 152 L286 160 Z" fill="#e3dccb"/><text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">반 성 문</text>`;
+    for (let i = 0; i < 4; i++) s += `<line x1="298" x2="372" y1="${106 + i * 11}" y2="${106 + i * 11}" stroke="#7d776a" stroke-width="1.6"/>`;
+    s += `</g><path d="M300 205 l14 -6 l6 10 l-12 4z M350 214 l10 -2 l2 8 l-10 1z" fill="#d8d0bd" opacity=".8"/>`;
   } else {
-    apology = "";
     for (let i = 0; i < 4; i++) {
       const x = 284 + (i % 2) * 60, y = 70 + Math.floor(i / 2) * 78;
-      apology += `<g transform="rotate(${i * 7 - 9} ${x + 26} ${y + 32})"><rect x="${x}" y="${y}" width="54" height="66" fill="#c9c5bb"/><rect x="${x + 5}" y="${y + 6}" width="44" height="9" fill="#7d1a1f"/><text x="${x + 27}" y="${y + 13}" font-size="7" text-anchor="middle" fill="#f4dcdc" class="ver-svg">심판자</text><line x1="${x + 6}" x2="${x + 48}" y1="${y + 26}" y2="${y + 26}" stroke="#7b776e" stroke-width="2"/><line x1="${x + 6}" x2="${x + 42}" y1="${y + 34}" y2="${y + 34}" stroke="#7b776e" stroke-width="2"/></g>`;
+      s += paper(x, y, 54, 66, i * 7 - 9) + `<rect x="${x + 5}" y="${y + 6}" width="44" height="10" fill="#7d1a1f"/><text x="${x + 27}" y="${y + 14}" font-size="7" text-anchor="middle" fill="#f4dcdc" class="ver-svg">심판자</text><rect x="${x + 6}" y="${y + 22}" width="42" height="18" fill="#9a958b"/><line x1="${x + 6}" x2="${x + 46}" y1="${y + 48}" y2="${y + 48}" stroke="#7b776e" stroke-width="1.5"/><line x1="${x + 6}" x2="${x + 40}" y1="${y + 55}" y2="${y + 55}" stroke="#7b776e" stroke-width="1.5"/></g>`;
     }
   }
-
-  let wallBoard = "";
+  /* 판결문 게시판 */
   if (st >= 1) {
-    wallBoard = `<rect x="434" y="226" width="152" height="62" fill="#3d3328"/><rect x="442" y="232" width="44" height="50" fill="#e6e0d2"/><text x="464" y="246" font-size="8" text-anchor="middle" class="ver-svg" fill="#2b2620">원칙</text>`;
-    for (let i = 0; i < Math.min(st, 4); i++) wallBoard += `<rect x="${494 + i * 22}" y="${234 + (i % 2) * 6}" width="18" height="24" fill="#bfc4cc"/><circle cx="${503 + i * 22}" cy="${244 + (i % 2) * 6}" r="5" fill="#1b1d22"/>`;
+    s += `<rect x="436" y="228" width="152" height="60" fill="#000" opacity=".35" transform="translate(3 4)"/><rect x="434" y="226" width="152" height="62" fill="#4a3a2a"/><rect x="438" y="230" width="144" height="54" fill="#6b5236"/>
+    <rect x="444" y="234" width="42" height="48" fill="#ece6d6"/><text x="465" y="247" font-size="8" text-anchor="middle" class="ver-svg" fill="#2b2620">원칙</text>`;
+    for (let i = 0; i < 3; i++) s += `<line x1="449" x2="481" y1="${255 + i * 8}" y2="${255 + i * 8}" stroke="#8a8477" stroke-width="1.2"/>`;
+    for (let i = 0; i < Math.min(st, 4); i++) s += `<rect x="${494 + i * 22}" y="${236 + (i % 2) * 6}" width="18" height="24" fill="#c8ccd2"/><rect x="${497 + i * 22}" y="${239 + (i % 2) * 6}" width="12" height="11" fill="#2a2c33"/><line x1="${494 + i * 22}" x2="${512 + i * 22}" y1="${238 + (i % 2) * 6}" y2="${258 + (i % 2) * 6}" stroke="#b0242b" stroke-width="2"/><circle cx="${503 + i * 22}" cy="${236 + (i % 2) * 6}" r="2" fill="#c0393f"/>`;
   }
+  return s;
+}
 
-  const mirrorWord = st < 3 ? "멈춰" : "심판";
-  const mirrorColor = st < 3 ? "#1b1d22" : "#7d1a1f";
-
-  let s = `<svg class="room" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="원룸">
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
-    <radialGradient id="lamp" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd9a0" stop-opacity=".35"/><stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/></radialGradient>
-  </defs>
-  <rect width="1000" height="440" fill="${wall}"/>
-  <rect y="436" width="1000" height="164" fill="#18181c"/>
-  <line x1="0" y1="436" x2="1000" y2="436" stroke="#3a3b41" stroke-width="3"/>
-  <rect x="436" y="60" width="160" height="140" fill="url(#sky)"/>
-  <rect x="436" y="60" width="160" height="140" fill="none" stroke="#45474f" stroke-width="6"/>
-  <line x1="516" y1="60" x2="516" y2="200" stroke="#45474f" stroke-width="4"/>
-  <rect x="34" y="174" width="102" height="254" rx="6" fill="#6d727b"/>
-  <line x1="34" y1="270" x2="136" y2="270" stroke="#4d5159" stroke-width="3"/>
-  <rect x="146" y="300" width="122" height="128" fill="#3a332d"/>
-  <rect x="146" y="296" width="122" height="10" fill="#55504a"/>
-  <rect x="170" y="310" width="70" height="30" rx="4" fill="#26231f"/>
-  <rect x="164" y="96" width="88" height="104" fill="#e2e0da"/>
-  <rect x="164" y="96" width="88" height="18" fill="#8d9199"/>`;
-
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) s += `<rect x="${170 + c * 20}" y="${120 + r * 19}" width="16" height="15" fill="${r * 4 + c < 6 ? "#b9c3cf" : "#cfcdc6"}"/>`;
-  s += apology + wallBoard;
-  // 책장
-  s += `<rect x="622" y="106" width="116" height="156" fill="#3a2f26"/>`;
-  for (let r = 0; r < 3; r++) {
-    s += `<rect x="626" y="${150 + r * 50}" width="108" height="5" fill="#2a221b"/>`;
-    for (let b = 0; b < 7; b++) s += `<rect x="${630 + b * 14}" y="${116 + r * 50}" width="11" height="34" fill="${["#5b3b3b","#3b4a5b","#4d5b3b","#6b5a3b","#3b3b5b","#5b4b3b","#45464f"][(b + r) % 7]}"/>`;
+/* 가운데: 책장, 책상, 금고, 쓰레기통, 침대 */
+function roomMid(st, glowPhone) {
+  let s = "";
+  /* 책장 */
+  const r = rnd(3), cols = ["#6b3b36", "#2f4a63", "#4d5b3b", "#7a6440", "#3d3b5e", "#6a4d37", "#4f5058", "#8a7a5a"];
+  s += `<rect x="618" y="102" width="124" height="164" fill="#2a2019"/><rect x="622" y="106" width="116" height="156" fill="#3d3027"/>`;
+  for (let row = 0; row < 3; row++) {
+    const base = 150 + row * 50; let x = 627;
+    while (x < 726) {
+      const w = 7 + r() * 8, h = 26 + r() * 14, c = cols[Math.floor(r() * cols.length)];
+      if (r() < .1 && x < 700) { s += `<rect x="${x}" y="${base - 30}" width="${w}" height="30" fill="${c}" transform="rotate(14 ${x} ${base})"/>`; x += 18; continue; }
+      s += `<rect x="${x.toFixed(1)}" y="${(base - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${c}"/><rect x="${x.toFixed(1)}" y="${(base - h + 5).toFixed(1)}" width="${w.toFixed(1)}" height="2" fill="#000" opacity=".25"/>`;
+      x += w + 1;
+    }
+    s += `<rect x="622" y="${base}" width="116" height="6" fill="#241b15"/>`;
   }
-  // 책상, 스탠드, 서랍, 핸드폰
-  s += `<ellipse cx="700" cy="270" rx="170" ry="90" fill="url(#lamp)"/>
-  <rect x="616" y="298" width="210" height="12" fill="#5a4a3c"/>
-  <rect x="622" y="310" width="10" height="126" fill="#46392e"/><rect x="810" y="310" width="10" height="126" fill="#46392e"/>
-  <rect x="630" y="308" width="78" height="40" fill="#4d3f33"/><rect x="660" y="324" width="18" height="5" rx="2" fill="#8b7a63"/>
-  <rect x="640" y="250" width="6" height="48" fill="#30302f"/><path d="M620 232 L668 232 L656 254 L632 254 Z" fill="#c7a46a"/>
-  <rect x="768" y="280" width="34" height="16" rx="3" fill="#0d0e12" stroke="#3a3e48"/>`;
-  if (glowPhone) s += `<rect x="764" y="276" width="42" height="24" rx="5" fill="none" stroke="#c0393f" stroke-width="3" class="phone-glow"/>`;
-  if (st >= 2) s += `<rect x="736" y="350" width="64" height="80" rx="4" fill="#2c2e33" stroke="#4a4d55" stroke-width="2"/><circle cx="768" cy="384" r="12" fill="#1b1c20" stroke="#6a6e78" stroke-width="2"/>`;
-  // 쓰레기통
-  s += `<path d="M598 402 H630 L626 438 H602 Z" fill="#3b3e45"/>`;
-  // 침대
-  s += `<rect x="282" y="398" width="304" height="72" rx="6" fill="#2f323b"/><rect x="290" y="378" width="288" height="40" rx="10" fill="#4a4f5b"/><rect x="296" y="372" width="74" height="28" rx="10" fill="#c9cbd1"/><rect x="282" y="470" width="304" height="30" fill="#0c0d10"/>`;
-  // 옷장과 거울
-  s += `<rect x="836" y="80" width="156" height="356" fill="#3a3128"/><line x1="914" y1="80" x2="914" y2="436" stroke="#26201a" stroke-width="3"/><rect x="926" y="240" width="5" height="40" fill="#8b7a63"/>
-  <rect x="846" y="132" width="44" height="168" fill="#8a96a1"/><rect x="846" y="132" width="44" height="168" fill="none" stroke="#c9cbd1" stroke-width="2"/>
-  <text x="868" y="226" font-size="22" text-anchor="middle" class="hand-svg" fill="${mirrorColor}" writing-mode="tb">${mirrorWord}</text>`;
-  // 공구함
-  s += `<rect x="850" y="452" width="88" height="40" rx="3" fill="#6b2a24"/><rect x="878" y="444" width="32" height="10" rx="3" fill="none" stroke="#3a1612" stroke-width="4"/><rect x="890" y="466" width="8" height="10" fill="#c9a25a"/>`;
-  s += posts;
+  s += `<path d="M708 100 q6 -16 14 -6 q4 -14 12 -2 q8 -6 6 8z" fill="#3f5a3a"/><rect x="712" y="96" width="20" height="10" fill="#8a5a3c"/>`;
+  /* 스탠드 불빛 */
+  s += `<ellipse cx="690" cy="300" rx="190" ry="110" fill="url(#rlamp)"/>`;
+  /* 책상 */
+  s += shadow(720, 436, 110, 7, .5) + `<rect x="616" y="296" width="212" height="12" rx="2" fill="#6a5644"/><rect x="616" y="296" width="212" height="3" fill="#8a735c"/>
+  <rect x="622" y="308" width="10" height="128" fill="#4a3c30"/><rect x="812" y="308" width="10" height="128" fill="#4a3c30"/>
+  <rect x="630" y="308" width="80" height="42" fill="#55453a" stroke="#3a2f27"/><rect x="658" y="325" width="22" height="5" rx="2" fill="#b39a74"/>`;
+  s += `<rect x="636" y="290" width="22" height="6" rx="2" fill="#2e2e30"/><path d="M646 290 L652 248 L640 236" fill="none" stroke="#2e2e30" stroke-width="4"/><path d="M620 228 L660 222 L656 246 L628 250 Z" fill="#d4ab6a"/><ellipse cx="642" cy="248" rx="14" ry="4" fill="#ffe2aa" opacity=".8"/>`;
+  s += `<rect x="690" y="282" width="40" height="14" fill="#d9d2c0" transform="rotate(-3 710 289)"/><rect x="692" y="276" width="38" height="12" fill="#ebe5d6" transform="rotate(4 710 282)"/><path d="M738 280 l18 14" stroke="#1c1c1c" stroke-width="2.5"/>`;
+  s += `<rect x="768" y="281" width="34" height="15" rx="3" fill="#0d0e12" stroke="#4a4e58"/>${glowPhone ? `<rect x="771" y="284" width="28" height="9" rx="1" fill="#c0393f" opacity=".7" class="phone-glow"/><rect x="764" y="277" width="42" height="23" rx="5" fill="none" stroke="#c0393f" stroke-width="3" class="phone-glow"/>` : `<rect x="771" y="284" width="28" height="9" rx="1" fill="#1c2230"/>`}`;
+  /* 의자 */
+  s += `<path d="M700 330 h50 l-4 52 h-42z" fill="#1d1e22"/><rect x="694" y="380" width="64" height="9" rx="3" fill="#2a2b30"/><rect x="722" y="389" width="6" height="34" fill="#1d1e22"/><path d="M700 426 h50" stroke="#1d1e22" stroke-width="5" stroke-linecap="round"/>`;
+  /* 금고 */
+  if (st >= 2) s += shadow(768, 432, 40, 5, .6) + `<linearGradient id="rsafe" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4a4d55"/><stop offset="1" stop-color="#1f2125"/></linearGradient>
+    <rect x="734" y="348" width="68" height="84" rx="4" fill="url(#rsafe)" stroke="#5c606a" stroke-width="2"/><rect x="740" y="354" width="56" height="72" rx="2" fill="none" stroke="#17181b" stroke-width="2"/>
+    <circle cx="768" cy="384" r="13" fill="#141518" stroke="#8a8f99" stroke-width="2"/><path d="M768 373 v6" stroke="#c9ccd2" stroke-width="2"/><rect x="784" y="378" width="5" height="16" rx="2" fill="#9aa0a8"/>`;
+  /* 쓰레기통 */
+  s += shadow(614, 438, 20, 4, .6) + `<path d="M597 402 H631 L626 438 H602 Z" fill="#3e4148"/><path d="M597 402 H631" stroke="#5a5e66" stroke-width="3"/>`;
+  for (let i = 0; i < Math.min(2 + st, 6); i++) s += `<circle cx="${603 + (i * 7) % 24}" cy="${398 - (i % 3) * 3}" r="${5 + (i % 2)}" fill="#cfc8b6"/>`;
+  /* 침대 */
+  s += shadow(434, 500, 170, 10, .7) + `<rect x="276" y="360" width="10" height="110" rx="2" fill="#3a2e25"/><rect x="282" y="400" width="304" height="70" rx="5" fill="#2c2f37"/>
+  <path d="M290 380 h288 q8 0 8 10 v40 h-304 v-40 q0 -10 8 -10z" fill="#4a4f5d"/><path d="M380 382 q60 20 200 4 v40 h-200z" fill="#3a3f4c"/>
+  <path d="M296 372 h74 q10 0 10 12 v12 q-40 6 -84 0 v-12 q0 -12 0 -12z" fill="#d3d5db"/><path d="M300 392 q36 4 72 0" stroke="#a9acb4" fill="none"/>
+  <rect x="282" y="470" width="304" height="32" fill="#08090b"/><rect x="290" y="470" width="4" height="32" fill="#2c2f37"/><rect x="574" y="470" width="4" height="32" fill="#2c2f37"/>
+  <path d="M420 486 h90 v16 h-90z" fill="#5a4936" opacity=".35"/>`;
+  return s;
+}
 
-  // 눌러서 살펴보는 곳
+/* 오른쪽: 옷장, 거울, 공구함. 그리고 포스트잇과 전체 조립 */
+function roomRight(st) {
+  const word = st < 3 ? "멈춰" : "심판", wc = st < 3 ? "#1b1d22" : "#8a1d22";
+  let s = shadow(914, 436, 86, 7, .6) + `<linearGradient id="rwood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3d3229"/><stop offset=".5" stop-color="#4a3c30"/><stop offset="1" stop-color="#2e251e"/></linearGradient>
+  <rect x="834" y="76" width="160" height="360" fill="#241c16"/><rect x="838" y="80" width="152" height="352" fill="url(#rwood)"/>
+  <rect x="914" y="80" width="3" height="352" fill="#1b1510"/><rect x="838" y="80" width="152" height="10" fill="#2a2119"/>`;
+  for (let i = 0; i < 9; i++) s += `<path d="M${922 + i * 7} 92 q3 160 -2 336" stroke="#000" stroke-opacity=".08" fill="none"/>`;
+  s += `<rect x="924" y="236" width="5" height="44" rx="2" fill="#a8916d"/><rect x="903" y="236" width="5" height="44" rx="2" fill="#a8916d"/>`;
+  /* 거울 */
+  s += `<linearGradient id="rmir" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9aa6b2"/><stop offset=".5" stop-color="#5f6a76"/><stop offset="1" stop-color="#3a424c"/></linearGradient>
+  <rect x="844" y="130" width="48" height="172" rx="3" fill="#c3c6cc"/><rect x="847" y="133" width="42" height="166" fill="url(#rmir)"/>
+  <path d="M852 140 l12 0 l-10 40 l-6 0z M870 200 l8 0 l-12 50 l-6 0z" fill="#fff" opacity=".18"/>
+  <ellipse cx="868" cy="270" rx="14" ry="30" fill="#1a1d22" opacity="${st >= 4 ? .7 : .35}"/><circle cx="868" cy="236" r="9" fill="#1a1d22" opacity="${st >= 4 ? .7 : .35}"/>
+  <text x="868" y="198" font-size="24" text-anchor="middle" class="hand-svg" fill="${wc}" writing-mode="tb">${word}</text>`;
+  if (st >= 3) s += `<path d="M856 196 q12 -6 24 0" stroke="#1b1d22" stroke-width="2" fill="none" opacity=".6"/>`;
+  /* 공구함 */
+  s += shadow(894, 494, 52, 5, .7) + `<linearGradient id="rtool" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a3a30"/><stop offset="1" stop-color="#5a1f1a"/></linearGradient>
+  <rect x="850" y="452" width="88" height="40" rx="3" fill="url(#rtool)"/><rect x="850" y="452" width="88" height="7" fill="#b2493d"/><rect x="850" y="470" width="88" height="2" fill="#3a1612"/>
+  <path d="M876 452 v-8 h36 v8" fill="none" stroke="#2a2b30" stroke-width="4"/><rect x="889" y="462" width="10" height="13" rx="1" fill="#d4ad62"/><circle cx="894" cy="468" r="1.6" fill="#5a3e1a"/>`;
+  return s;
+}
+function roomPostits(st) {
+  const pos = [[48, 196], [98, 250], [292, 236], [402, 108], [658, 268], [848, 316], [904, 250], [450, 200]];
+  let s = "";
+  for (let i = 0; i < [8, 6, 4, 2, 0, 0][st]; i++) {
+    const [x, y] = pos[i], a = (i * 37) % 11 - 5;
+    s += `<g transform="translate(${x} ${y}) rotate(${a})"><rect x="2" y="3" width="30" height="28" fill="#000" opacity=".3"/><path d="M0 0 h30 v24 l-4 4 h-26z" fill="#ecdc72"/><path d="M30 24 l-4 4 v-4z" fill="#b9aa4c"/><text x="15" y="19" font-size="13" text-anchor="middle" class="hand-svg" fill="#3a3520">멈춰</text></g>`;
+  }
+  const fallen = [0, 2, 4, 6, 8, 8][st];
+  for (let i = 0; i < Math.min(fallen, 6); i++) s += `<path d="M${120 + i * 140} ${556 + (i % 2) * 18} l20 -4 l3 16 l-20 4z" fill="#c9bb5e" opacity=".55"/>`;
+  return s;
+}
+function roomSVG(st, glowPhone) {
+  const day = st === 0 || st === 2;
+  let s = `<svg class="room" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="원룸"><defs>${fxDefs("r")}`;
+  s += roomBack(st, day) + roomLeft(st) + roomMid(st, glowPhone) + roomRight(st) + roomPostits(st);
+  if (st >= 4) s += `<rect width="1000" height="600" fill="#5a0f12" opacity="${st === 5 ? .16 : .09}" pointer-events="none" style="mix-blend-mode:multiply"/>`;
+  s += fxOver("r", 1000, 600, .09);
   for (const sp of SPOTS) {
     if (sp.min && st < sp.min) continue;
     const [x, y, w, h] = sp.box;
@@ -923,68 +1033,158 @@ function roomSVG(st, glowPhone) {
   return s + "</svg>";
 }
 
-/* 현장 그림 (임시 SVG). 1000×600 */
-function lights(seed, n, x0, x1, y0, y1, color) {
-  let s = "", r = seed;
-  for (let i = 0; i < n; i++) {
-    r = (r * 9301 + 49297) % 233280; const x = x0 + (r / 233280) * (x1 - x0);
-    r = (r * 9301 + 49297) % 233280; const y = y0 + (r / 233280) * (y1 - y0);
-    s += `<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="5" height="4" fill="${color}" opacity="${(0.3 + (i % 5) / 8).toFixed(2)}"/>`;
-  }
+/* 현장 그림. 1000×600. 사람은 언제나 얼굴 없는 실루엣, 일어나는 일은 보여 주지 않는다. */
+function standing(x, y, sc, fill) {
+  return `<g transform="translate(${x} ${y}) scale(${sc})" fill="${fill}"><circle cx="0" cy="-152" r="13"/><path d="M-6 -140 h12 l2 6 q20 3 24 14 l6 52 q1 6 -5 6 l-4 -2 l-5 -44 l-2 40 l-4 74 h-11 l-3 -60 l-3 60 h-11 l-4 -74 l-2 -40 l-5 44 l-4 2 q-6 0 -5 -6 l6 -52 q4 -11 24 -14z"/></g>`;
+}
+function seatedBack(x, y, sc, fill, chair) {
+  return `<g transform="translate(${x} ${y}) scale(${sc})"><circle cx="0" cy="-92" r="16" fill="${fill}"/><path d="M-34 -66 q34 -16 68 0 l8 40 h-84z" fill="${fill}"/><path d="M-40 -60 q40 -12 80 0 v70 h-80z" fill="${chair}"/><rect x="-4" y="10" width="8" height="34" fill="${chair}"/><path d="M-30 46 h60" stroke="${chair}" stroke-width="6" stroke-linecap="round"/></g>`;
+}
+function rain(seed, n, o = .25) {
+  const r = rnd(seed); let s = `<g stroke="#b9c7dc" stroke-width="1.2" opacity="${o}">`;
+  for (let i = 0; i < n; i++) { const x = r() * 1060 - 30, y = r() * 600, l = 14 + r() * 22; s += `<line x1="${x.toFixed(0)}" y1="${y.toFixed(0)}" x2="${(x - l * .25).toFixed(0)}" y2="${(y + l).toFixed(0)}"/>`; }
+  return s + "</g>";
+}
+function sceneOffice() {
+  let s = `<linearGradient id="snight" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050812"/><stop offset="1" stop-color="#1a2135"/></linearGradient>
+  <radialGradient id="sdesk" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf8a" stop-opacity=".55"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></radialGradient></defs>
+  <rect width="1000" height="600" fill="#0b0d14"/><rect x="90" y="50" width="820" height="290" fill="url(#snight)"/>`;
+  s += skyline(21, 90, 910, 340, 60, 200, "#0a0d17") + cityLights(7, 160, 96, 904, 150, 336, "#f2d18b", 4, 4) + skyline(23, 90, 910, 340, 20, 70, "#06080e");
+  for (let i = 0; i < 18; i++) s += `<rect x="90" y="${52 + i * 9}" width="820" height="4" fill="#0e121c" opacity=".85"/>`;
+  s += [90, 295, 500, 705, 905].map(x => `<rect x="${x - 4}" y="46" width="9" height="298" fill="#1f232d"/>`).join("") + `<rect x="86" y="338" width="828" height="8" fill="#1f232d"/>`;
+  s += `<rect y="346" width="1000" height="254" fill="#12141a"/><path d="M0 600 L300 346 H700 L1000 600z" fill="#171a21"/>`;
+  s += `<rect x="130" y="420" width="190" height="10" fill="#2c2f37"/><rect x="150" y="394" width="40" height="26" fill="#1d2027"/><rect x="680" y="420" width="190" height="10" fill="#2c2f37"/><rect x="760" y="388" width="48" height="32" fill="#1d2027"/>`;
+  s += `<ellipse cx="560" cy="420" rx="230" ry="130" fill="url(#sdesk)"/><rect x="380" y="430" width="300" height="14" fill="#4a3f33"/><rect x="392" y="444" width="12" height="100" fill="#2a241e"/><rect x="656" y="444" width="12" height="100" fill="#2a241e"/>
+  <path d="M600 430 l6 -40 l-14 -10" stroke="#222" stroke-width="4" fill="none"/><path d="M574 372 l34 -4 l-4 18 l-26 4z" fill="#d4ab6a"/>
+  <rect x="430" y="416" width="70" height="14" fill="#d9d2c0" transform="rotate(-4 465 423)"/><rect x="510" y="414" width="44" height="16" fill="#6b2a24"/><rect x="514" y="418" width="36" height="2" fill="#c9a25a"/>`;
+  s += seatedBack(520, 470, 1.05, "#05060a", "#0e0f13");
+  s += `<rect x="0" y="0" width="34" height="600" fill="#07080b"/><rect x="966" y="0" width="34" height="600" fill="#07080b"/>`;
   return s;
 }
-function figure(x, y, sc, fill) {
-  return `<g transform="translate(${x} ${y}) scale(${sc})" fill="${fill}"><circle cx="0" cy="-62" r="15"/><path d="M-24 -42 Q0 -50 24 -42 L28 10 H-28 Z"/></g>`;
+function sceneRoad() {
+  let s = `<linearGradient id="sroad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0f15"/><stop offset="1" stop-color="#1b1d24"/></linearGradient>
+  <radialGradient id="slamp" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#ffd79a" stop-opacity=".35"/><stop offset="1" stop-color="#ffd79a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="shead" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff8e4" stop-opacity=".9"/><stop offset=".4" stop-color="#fff2c8" stop-opacity=".25"/><stop offset="1" stop-color="#fff2c8" stop-opacity="0"/></radialGradient></defs>
+  <rect width="1000" height="600" fill="#05070c"/>`;
+  s += skyline(31, 0, 1000, 300, 60, 180, "#0a0c13") + cityLights(3, 120, 0, 1000, 150, 296, "#d9c08a", 4, 3);
+  s += `<path d="M0 300 H1000 V600 H0z" fill="url(#sroad)"/>`;
+  for (let i = 0; i < 9; i++) { const t = i / 9, t2 = (i + .55) / 9; s += `<path d="M${(250 + t * 500).toFixed(0)} 330 L${(250 + t2 * 500).toFixed(0)} 330 L${(-60 + t2 * 1120).toFixed(0)} 560 L${(-60 + t * 1120).toFixed(0)} 560z" fill="#d6d8dd" opacity=".34"/>`; }
+  s += `<rect x="0" y="300" width="1000" height="300" fill="#7c8aa3" opacity=".04"/>`;
+  s += `<rect x="814" y="120" width="8" height="200" fill="#25272e"/><rect x="798" y="120" width="40" height="66" rx="5" fill="#15161b"/><circle cx="818" cy="140" r="10" fill="#e0454b"/><circle cx="818" cy="140" r="22" fill="#e0454b" opacity=".18" filter="url(#sblur)"/><circle cx="818" cy="166" r="10" fill="#1d2a2e"/>
+  <rect x="808" y="330" width="20" height="60" fill="#e0454b" opacity=".12" filter="url(#sblur)"/>`;
+  s += `<rect x="150" y="60" width="6" height="250" fill="#22242a"/><path d="M153 64 q30 -6 40 8" stroke="#22242a" stroke-width="5" fill="none"/><path d="M180 74 h26 l-4 6 h-18z" fill="#ffe2aa"/><path d="M193 80 L80 330 H320z" fill="url(#slamp)"/>`;
+  s += standing(560, 452, .62, "#030407") + `<ellipse cx="560" cy="456" rx="26" ry="5" fill="#000" opacity=".5"/><rect x="552" y="458" width="16" height="70" fill="#030407" opacity=".25" filter="url(#ssoft)"/>`;
+  s += `<ellipse cx="40" cy="520" rx="200" ry="70" fill="url(#shead)"/><ellipse cx="-40" cy="520" rx="160" ry="60" fill="url(#shead)"/><path d="M60 500 L600 470 L600 520 L60 560z" fill="#fff5d8" opacity=".05"/>`;
+  s += rain(5, 240, .22);
+  return s;
+}
+
+function sceneStudy() {
+  let s = `<radialGradient id="smon" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#5fd39a" stop-opacity=".28"/><stop offset="1" stop-color="#5fd39a" stop-opacity="0"/></radialGradient></defs>
+  <rect width="1000" height="600" fill="#0a0b0f"/><rect x="640" y="60" width="250" height="250" fill="#0b1120"/>`;
+  s += skyline(41, 640, 890, 310, 70, 200, "#070a12") + cityLights(9, 70, 644, 886, 140, 306, "#cfd9f0", 3, 3);
+  for (let i = 0; i < 12; i++) s += `<rect x="640" y="${62 + i * 21}" width="250" height="9" fill="#141824"/>`;
+  s += `<rect x="636" y="56" width="258" height="258" fill="none" stroke="#1d2029" stroke-width="8"/>`;
+  s += `<rect x="70" y="80" width="200" height="350" fill="#16171c"/>`;
+  for (let r = 0; r < 4; r++) { s += `<rect x="70" y="${160 + r * 80}" width="200" height="6" fill="#0c0d10"/>`; for (let b = 0; b < 6; b++) s += `<rect x="${80 + b * 30}" y="${100 + r * 80}" width="24" height="60" fill="${["#1e2a3a", "#2b2320", "#232a22"][(b + r) % 3]}"/><rect x="${84 + b * 30}" y="${112 + r * 80}" width="16" height="8" fill="#b9b2a2" opacity=".35"/>`; }
+  s += `<rect y="440" width="1000" height="160" fill="#111216"/><ellipse cx="470" cy="360" rx="260" ry="170" fill="url(#smon)"/>`;
+  s += `<rect x="300" y="420" width="380" height="14" fill="#3a2f26"/><rect x="318" y="434" width="12" height="110" fill="#241d17"/><rect x="650" y="434" width="12" height="110" fill="#241d17"/>
+  <rect x="388" y="300" width="164" height="104" rx="5" fill="#1b1d22"/><rect x="398" y="310" width="144" height="84" fill="#123222"/><rect x="398" y="310" width="144" height="84" fill="#5fd39a" opacity=".12"/>
+  <text x="470" y="356" font-size="11" text-anchor="middle" fill="#5fd39a" opacity=".6" font-family="monospace">PASSWORD _</text><rect x="462" y="404" width="16" height="16" fill="#1b1d22"/><rect x="440" y="418" width="60" height="4" fill="#1b1d22"/>
+  <rect x="574" y="322" width="62" height="98" rx="3" fill="#202227"/><circle cx="605" cy="340" r="3.5" fill="#5fd39a"/>${[0, 1, 2, 3].map(i => `<circle cx="${i % 2 ? 630 : 580}" cy="${i < 2 ? 328 : 414}" r="2" fill="#6a6e78"/>`).join("")}`;
+  s += `<rect x="424" y="430" width="92" height="74" rx="10" fill="#18191d"/><rect x="414" y="500" width="112" height="12" rx="4" fill="#1f2025"/><rect x="466" y="512" width="8" height="34" fill="#18191d"/><path d="M430 552 h80" stroke="#18191d" stroke-width="6" stroke-linecap="round"/>`;
+  return s;
+}
+function sceneMansion() {
+  let s = `<radialGradient id="schand" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd38a" stop-opacity=".3"/><stop offset="1" stop-color="#ffd38a" stop-opacity="0"/></radialGradient>
+  <linearGradient id="spanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1c13"/><stop offset="1" stop-color="#170f0a"/></linearGradient></defs>
+  <rect width="1000" height="600" fill="url(#spanel)"/>`;
+  for (let i = 0; i < 10; i++) s += `<rect x="${i * 100 + 10}" y="40" width="80" height="380" fill="none" stroke="#3a2818" stroke-width="3"/>`;
+  s += `<rect x="40" y="60" width="240" height="360" fill="#1d130c"/>`;
+  for (let r = 0; r < 6; r++) { s += `<rect x="40" y="${118 + r * 52}" width="240" height="6" fill="#3a2a1d"/>`; for (let b = 0; b < 12; b++) s += `<rect x="${46 + b * 19}" y="${78 + r * 52}" width="16" height="40" fill="${["#4a1e1a", "#2d3a2a", "#3a2d1e", "#5a4a2a"][(b * 3 + r) % 4]}"/>`; }
+  s += `<rect x="640" y="100" width="220" height="150" fill="#2a1d14" stroke="#b08a48" stroke-width="7"/><rect x="656" y="116" width="188" height="118" fill="#3d2a1e"/><path d="M656 210 q60 -50 100 -20 t88 -10 v54 h-188z" fill="#2b3a2e"/>`;
+  s += `<ellipse cx="500" cy="160" rx="380" ry="260" fill="url(#schand)"/><line x1="500" y1="0" x2="500" y2="56" stroke="#7a6038" stroke-width="2"/><path d="M450 70 q50 -30 100 0 l-10 18 h-80z" fill="#b08a48"/>${[0, 1, 2, 3, 4].map(i => `<circle cx="${458 + i * 21}" cy="94" r="5" fill="#ffe6b0"/>`).join("")}`;
+  s += `<rect y="430" width="1000" height="170" fill="#140d08"/><path d="M200 600 L330 470 H670 L800 600z" fill="#4a1414" opacity=".5"/>`;
+  s += `<path d="M440 262 q60 -30 120 0 v178 h-120z" fill="#1d0c0a"/>` + `<g fill="#050306"><circle cx="500" cy="318" r="18"/><path d="M462 404 q0 -64 38 -66 q38 2 38 66z"/></g>`;
+  s += `<rect x="330" y="400" width="340" height="18" fill="#5a3b25"/><rect x="346" y="418" width="308" height="96" fill="#3d2818"/><rect x="346" y="418" width="308" height="4" fill="#2a1a0f"/>
+  <rect x="590" y="378" width="66" height="24" rx="3" fill="#191512"/><rect x="612" y="372" width="22" height="7" rx="3" fill="none" stroke="#191512" stroke-width="3"/><circle cx="380" cy="392" r="8" fill="#b08a48" opacity=".7"/>`;
+  s += `<path d="M0 0 h70 q-20 200 0 440 h-70z" fill="#3a0f10"/><path d="M1000 0 h-70 q20 200 0 440 h70z" fill="#3a0f10"/>`;
+  return s;
+}
+function sceneMirror() {
+  let s = `<linearGradient id="smir" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#25303d"/><stop offset=".5" stop-color="#1b2027"/><stop offset="1" stop-color="#3a1a1d"/></linearGradient>
+  <radialGradient id="sbulb" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#ffe7b8" stop-opacity=".3"/><stop offset="1" stop-color="#ffe7b8" stop-opacity="0"/></radialGradient></defs>
+  <rect width="1000" height="600" fill="#050507"/><path d="M500 0 L180 600 H820z" fill="url(#sbulb)"/><line x1="500" y1="0" x2="500" y2="40" stroke="#333" stroke-width="2"/><circle cx="500" cy="48" r="9" fill="#ffe7b8"/><circle cx="500" cy="48" r="30" fill="#ffe7b8" opacity=".25" filter="url(#sblur)"/>`;
+  s += `<rect x="380" y="80" width="240" height="440" fill="#6a6f78"/><rect x="390" y="90" width="220" height="420" fill="url(#smir)"/>`;
+  const sil = `<circle cx="500" cy="250" r="62"/><path d="M474 300 h52 v34 c40 6 64 14 82 30 c18 18 26 70 30 156 h-276 c4 -86 12 -138 30 -156 c18 -16 42 -24 82 -30z"/>`;
+  s += `<clipPath id="sl"><rect x="390" y="90" width="110" height="420"/></clipPath><clipPath id="sr"><rect x="500" y="90" width="110" height="420"/></clipPath>
+  <g clip-path="url(#sl)" fill="#0a0f17">${sil}</g><g clip-path="url(#sr)" fill="#120608">${sil}</g>`;
+  s += `<path d="M500 90 l-8 90 l14 60 l-10 90 l8 90 l-6 90" stroke="#9aa6b2" stroke-width="1.4" fill="none" opacity=".55"/>`;
+  s += `<path d="M412 110 l40 0 l-36 140 l-14 0z" fill="#fff" opacity=".06"/>`;
+  s += `<text x="560" y="160" font-size="46" text-anchor="middle" class="hand-svg" fill="#9a1d22" opacity=".9">심판</text><text x="440" y="470" font-size="26" text-anchor="middle" class="hand-svg" fill="#1b1d22" opacity=".55">멈춰</text>`;
+  s += `<rect x="0" y="520" width="1000" height="80" fill="#0a0a0d"/><rect x="360" y="516" width="280" height="12" fill="#2a2b30"/>`;
+  return s;
 }
 function sceneSVG(kind) {
-  const open = `<svg class="sc" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="현장">`;
-  if (kind === "office") return open + `
-    <rect width="1000" height="600" fill="#0d1017"/>
-    <rect x="80" y="60" width="840" height="250" fill="#0a0e1a"/>${lights(7, 70, 90, 910, 140, 300, "#f2d18b")}
-    <line x1="80" y1="60" x2="920" y2="60" stroke="#2a2e38" stroke-width="6"/>${[290, 500, 710].map(x => `<line x1="${x}" y1="60" x2="${x}" y2="310" stroke="#2a2e38" stroke-width="6"/>`).join("")}
-    <rect y="310" width="1000" height="290" fill="#14161c"/>
-    ${[120, 330, 700].map(x => `<rect x="${x}" y="370" width="160" height="10" fill="#2c2f37"/><rect x="${x + 20}" y="350" width="34" height="20" fill="#20232a"/>`).join("")}
-    <ellipse cx="520" cy="380" rx="200" ry="120" fill="#ffd9a0" opacity=".08"/>
-    <rect x="420" y="390" width="200" height="12" fill="#3a352e"/>${figure(520, 392, 1.2, "#06070a")}
-    <rect x="470" y="340" width="40" height="30" fill="#7e9bb5" opacity=".5"/>
-    <text x="840" y="290" font-size="18" fill="#6b7180" text-anchor="middle" font-family="serif">새빛자산관리</text></svg>`;
-  if (kind === "road") return open + `
-    <rect width="1000" height="600" fill="#080b12"/>${lights(3, 40, 0, 1000, 180, 300, "#d9c08a")}
-    <rect y="300" width="1000" height="300" fill="#121318"/>
-    ${[0,1,2,3,4,5,6,7].map(i => `<rect x="${330 + i * 46}" y="380" width="28" height="140" fill="#cfd1d6" opacity=".55" transform="skewX(-8)"/>`).join("")}
-    <rect x="170" y="140" width="8" height="200" fill="#2a2c33"/><rect x="156" y="140" width="36" height="60" rx="4" fill="#1b1c22"/><circle cx="174" cy="158" r="9" fill="#c0393f"/><circle cx="174" cy="182" r="9" fill="#24323b"/>
-    <path d="M0 600 L0 420 L260 470 L260 600 Z" fill="#fff6d8" opacity=".06"/>
-    ${figure(620, 470, 1, "#05060a")}</svg>`;
-  if (kind === "studyroom") return open + `
-    <rect width="1000" height="600" fill="#0b0c10"/>
-    <rect x="620" y="70" width="240" height="220" fill="#101521"/>${[0,1,2,3,4,5,6,7,8].map(i => `<rect x="620" y="${80 + i * 23}" width="240" height="9" fill="#1d212b"/>`).join("")}
-    <rect y="430" width="1000" height="170" fill="#121318"/>
-    <rect x="300" y="390" width="360" height="14" fill="#3a2f26"/><rect x="318" y="404" width="12" height="100" fill="#2b231c"/><rect x="630" y="404" width="12" height="100" fill="#2b231c"/>
-    <rect x="390" y="290" width="150" height="100" rx="6" fill="#2a2c31"/><rect x="402" y="302" width="126" height="76" fill="#1c3a2c" opacity=".7"/>
-    <rect x="560" y="300" width="60" height="90" fill="#25272c"/><circle cx="590" cy="320" r="4" fill="#3a6b4e"/>
-    ${[0,1,2].map(i => `<rect x="${320 + i * 18}" y="${360 - i * 8}" width="50" height="30" fill="#bdb6a6" opacity=".4"/>`).join("")}
-    <ellipse cx="465" cy="340" rx="160" ry="100" fill="#3a6b4e" opacity=".07"/></svg>`;
-  if (kind === "mansion") return open + `
-    <rect width="1000" height="600" fill="#1a120e"/>
-    ${[0,1,2,3,4].map(i => `<rect x="${60 + i * 50}" y="80" width="40" height="330" fill="#2a1d15"/>`).join("")}
-    ${[0,1,2,3,4,5].map(i => `<rect x="60" y="${120 + i * 50}" width="240" height="6" fill="#3a2a1d"/>`).join("")}
-    <rect x="640" y="110" width="200" height="140" fill="#3a2a1d" stroke="#c9a25a" stroke-width="6"/><rect x="660" y="130" width="160" height="100" fill="#5a3b2b"/>
-    <path d="M500 40 L470 90 H530 Z" fill="#c9a25a" opacity=".6"/><circle cx="500" cy="96" r="18" fill="#ffe6b0" opacity=".5"/>
-    <rect y="440" width="1000" height="160" fill="#20160f"/>
-    <rect x="360" y="400" width="320" height="18" fill="#5a3b25"/><rect x="380" y="418" width="280" height="80" fill="#3d2818"/>
-    <rect x="460" y="300" width="90" height="110" rx="12" fill="#2a120f"/>${figure(505, 392, 1.15, "#07050a")}
-    <rect x="600" y="376" width="60" height="24" rx="3" fill="#1d1a17"/></svg>`;
-  if (kind === "mirror") return open + `
-    <rect width="1000" height="600" fill="#050507"/>
-    <rect x="390" y="70" width="220" height="440" fill="#1c2128"/><rect x="390" y="70" width="220" height="440" fill="none" stroke="#5a5f6b" stroke-width="6"/>
-    ${figure(500, 470, 2.2, "#08090c")}
-    <ellipse cx="500" cy="290" rx="260" ry="240" fill="#c0393f" opacity=".06"/>
-    <text x="500" y="140" font-size="40" text-anchor="middle" class="hand-svg" fill="#7d1a1f">심판</text></svg>`;
-  return open + `<rect width="1000" height="600" fill="#000"/></svg>`;
+  const body = { office: sceneOffice, road: sceneRoad, studyroom: sceneStudy, mansion: sceneMansion, mirror: sceneMirror }[kind];
+  let s = `<svg class="sc" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="현장"><defs>${fxDefs("s")}`;
+  s += body ? body() : `</defs><rect width="1000" height="600" fill="#000"/>`;
+  return s + fxOver("s", 1000, 600, .12) + "</svg>";
+}
+
+/* 표적 프로필 사진: 한상철이 망원으로 몰래 찍은 사진. 320×180 */
+function bust(o) {
+  const hair = {
+    slick: `<path d="M-24 -6 q-2 -30 24 -32 q26 0 25 30 q-6 -16 -24 -18 q-16 2 -25 20z" fill="${o.hairC}"/><path d="M-8 -28 q14 -4 26 6" stroke="#fff" stroke-opacity=".25" stroke-width="2" fill="none"/>`,
+    crew: `<path d="M-23 -4 q-2 -28 23 -29 q25 1 23 29 q-4 -12 -8 -14 q-15 -6 -30 0 q-5 3 -8 14z" fill="${o.hairC}"/>`,
+    bald: `<path d="M-23 4 q-3 -12 2 -18 l4 12z M23 4 q3 -12 -2 -18 l-4 12z" fill="${o.hairC}"/><path d="M-14 -24 q14 -6 28 0" stroke="${o.hairC}" stroke-width="2" fill="none" opacity=".6"/>`,
+    part: `<path d="M-24 -2 q-4 -32 22 -32 q28 0 26 30 q-6 -14 -12 -18 q-10 8 -36 20z" fill="${o.hairC}"/><path d="M-6 -30 l-4 14" stroke="#000" stroke-opacity=".3" stroke-width="1.5"/>`
+  }[o.hair];
+  return `<g transform="translate(${o.x} ${o.y}) scale(${o.sc})">
+    <path d="M-78 120 q6 -58 52 -66 h52 q46 8 52 66z" fill="${o.coat}"/>
+    <path d="M-16 54 l16 30 l16 -30z" fill="${o.shirt}"/>${o.tie ? `<path d="M-4 60 h8 l3 34 l-7 8 l-7 -8z" fill="${o.tie}"/>` : ""}
+    <path d="M-26 54 l10 0 l16 30 l-12 30z M26 54 l-10 0 l-16 30 l12 30z" fill="#000" opacity=".25"/>
+    <rect x="-10" y="20" width="20" height="38" fill="${o.skin}"/><rect x="-10" y="20" width="20" height="38" fill="#000" opacity=".3"/>
+    <ellipse cx="-23" cy="4" rx="5" ry="8" fill="${o.skin}"/><ellipse cx="23" cy="4" rx="5" ry="8" fill="${o.skin}"/>
+    <ellipse cx="0" cy="0" rx="23" ry="29" fill="${o.skin}"/><path d="M4 -29 q22 4 19 30 q-2 24 -21 28 q12 -26 2 -58z" fill="#000" opacity=".35"/>
+    <path d="M-9 -4 h6 M5 -4 h6" stroke="#000" stroke-opacity=".55" stroke-width="2.4" stroke-linecap="round"/><path d="M-6 16 q6 2 12 0" stroke="#000" stroke-opacity=".35" stroke-width="1.6" fill="none"/>
+    ${o.glasses ? `<rect x="-15" y="-9" width="12" height="9" rx="2" fill="none" stroke="#111" stroke-width="1.6"/><rect x="3" y="-9" width="12" height="9" rx="2" fill="none" stroke="#111" stroke-width="1.6"/><path d="M-3 -5 h6" stroke="#111" stroke-width="1.4"/><path d="M-12 -7 l4 0" stroke="#fff" stroke-opacity=".5"/>` : ""}
+    ${hair}${o.extra || ""}</g>`;
 }
 function portraitSVG(kind) {
-  const bg = { office: "#1c2230", road: "#241a16", studyroom: "#1a201c", mansion: "#2a1d15" }[kind] || "#1a1c24";
-  return `<svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="320" height="180" fill="${bg}"/>${figure(160, 186, 2.2, "#06070a")}<rect width="320" height="180" fill="none" stroke="#000" stroke-width="2"/><text x="300" y="168" font-size="11" fill="#8d919b" text-anchor="end">한상철 제공</text></svg>`;
+  const P = {
+    office: { bg: `<rect width="320" height="180" fill="#1a2234"/>${skyline(61, 0, 320, 180, 40, 150, "#121929")}${cityLights(5, 60, 0, 320, 40, 176, "#f2d18b", 3, 3)}${[0, 1, 2, 3, 4, 5, 6].map(i => `<rect x="0" y="${i * 26}" width="320" height="10" fill="#0f1420" opacity=".55"/>`).join("")}`,
+      who: { x: 170, y: 82, sc: 1.05, skin: "#b48d72", hair: "slick", hairC: "#14120f", coat: "#20232b", shirt: "#d9d6cf", tie: "#6b1d22", glasses: true,
+        extra: `<path d="M-30 -2 l-8 -2 l-4 34 q8 10 16 4z" fill="#b48d72"/><rect x="-36" y="-14" width="10" height="26" rx="2" fill="#0d0e12"/>` }, stamp: "202×.07.19 23:12", tint: "#8fb4ff" },
+    road: { bg: `<rect width="320" height="180" fill="#20170f"/><rect y="120" width="320" height="60" fill="#120d09"/>${cityLights(8, 30, 0, 320, 10, 110, "#e0b070", 6, 4)}<circle cx="60" cy="40" r="40" fill="#ffb060" opacity=".12"/>`,
+      who: { x: 150, y: 80, sc: 1, skin: "#b0866a", hair: "crew", hairC: "#1a1612", coat: "#3a3d45", shirt: "#7a7f8a", tie: null, glasses: false },
+      fg: `<path d="M0 166 q60 -22 180 -22 q120 0 140 22 v14 h-320z" fill="#2a2e36"/><path d="M40 158 q80 -12 220 -8" stroke="#5a606c" stroke-width="2" fill="none"/>`, stamp: "202×.08.03 23:51", tint: "#ffb060" },
+    studyroom: { bg: `<rect width="320" height="180" fill="#1b2420"/><rect x="40" y="10" width="240" height="160" fill="#26302b"/>`,
+      who: { x: 160, y: 84, sc: 1, skin: "#b9937b", hair: "bald", hairC: "#a7a59f", coat: "#4a4236", shirt: "#cfcbc0", tie: null, glasses: true },
+      fg: [0, 1, 2, 3, 4, 5, 6, 7].map(i => `<rect x="0" y="${8 + i * 22}" width="320" height="11" fill="#c8c6bb" opacity=".22"/>`).join(""), stamp: "202×.08.21 22:02", tint: "#8fd0b0" },
+    mansion: { bg: `<rect width="320" height="180" fill="#2a1d15"/><rect x="200" y="20" width="90" height="70" fill="#3a2a1d" stroke="#b08a48" stroke-width="3"/><rect x="20" y="0" width="12" height="180" fill="#1d130c"/>`,
+      who: { x: 140, y: 80, sc: 1.05, skin: "#c09a7f", hair: "part", hairC: "#c2c0ba", coat: "#1c2233", shirt: "#e4e1d8", tie: "#7a1c22", glasses: false,
+        extra: `<circle cx="-34" cy="76" r="4" fill="#d4ad62"/>` }, stamp: "202×.09.07 21:03", tint: "#ffcf8a" }
+  }[kind] || { bg: `<rect width="320" height="180" fill="#1a1c24"/>`, who: null, stamp: "", tint: "#fff" };
+  const id = "p" + kind;
+  let s = `<svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><defs>${fxDefs(id)}</defs>`;
+  s += `<g filter="url(#${id}soft)" opacity=".85">${P.bg}</g>`;
+  if (P.who) s += bust(P.who);
+  if (P.fg) s += `<g filter="url(#${id}soft)">${P.fg}</g>`;
+  s += `<rect width="320" height="180" fill="${P.tint}" opacity=".08" style="mix-blend-mode:color"/>`;
+  for (let y = 0; y < 180; y += 3) s += `<rect y="${y}" width="320" height="1" fill="#000" opacity=".12"/>`;
+  s += fxOver(id, 320, 180, .16);
+  s += `<path d="M14 30 v-16 h16 M290 14 h16 v16 M306 150 v16 h-16 M30 166 h-16 v-16" stroke="#e7e4dd" stroke-opacity=".5" stroke-width="1.5" fill="none"/>`;
+  s += `<text x="20" y="160" font-size="10" fill="#ffb347" font-family="monospace" opacity=".85">${P.stamp}</text><text x="300" y="160" font-size="10" fill="#8d919b" text-anchor="end">한상철 제공</text>`;
+  return s + "</svg>";
+}
+/* 타이틀 배경: 비 내리는 밤의 도시, 위에서 번져 내려오는 물때 */
+function titleSVG() {
+  let s = `<svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>${fxDefs("t")}</defs><rect width="1000" height="600" fill="#07080b"/>`;
+  s += skyline(71, 0, 1000, 600, 120, 330, "#0d0f15") + cityLights(13, 140, 0, 1000, 300, 596, "#d9c08a", 4, 3) + skyline(73, 0, 1000, 600, 40, 160, "#08090d");
+  const r = rnd(17);
+  for (let i = 0; i < 9; i++) { const x = r() * 1000, l = 60 + r() * 200; s += `<path d="M${x.toFixed(0)} 0 q3 ${(l / 2).toFixed(0)} 0 ${l.toFixed(0)}" stroke="#2e2a22" stroke-width="${(2 + r() * 3).toFixed(1)}" opacity=".5" fill="none" stroke-linecap="round"/><ellipse cx="${x.toFixed(0)}" cy="0" rx="${(30 + r() * 50).toFixed(0)}" ry="${(20 + r() * 40).toFixed(0)}" fill="#2a251d" opacity=".6" filter="url(#tblur)"/>`; }
+  return s + rain(9, 200, .16) + fxOver("t", 1000, 600, .1) + "</svg>";
 }
 
 /* =====================================================================
@@ -1509,7 +1709,7 @@ function stepDone() { PV.open = false; const ov = $(".phone-ov"); if (ov) ov.rem
 
 function renderTitle() {
   const has = fetchSaved(SAVE_KEY);
-  $("#app").innerHTML = `<div class="title-screen"><h1>물때<span>2</span></h1><p class="sub">죗값</p><p class="period">202×년 7월 14일 ~ 9월 15일</p>
+  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div><h1>물때<span>2</span></h1><p class="sub">죗값</p><p class="period">202×년 7월 14일 ~ 9월 15일</p>
     <div class="stack"><button class="btn red" id="new" type="button">처음부터</button><button class="btn" id="cont" type="button" ${has && has.step > 0 ? "" : "disabled"}>이어하기</button><button class="btn" id="slots" type="button" ${anySlot() ? "" : "disabled"}>저장 슬롯에서 불러오기</button></div>
     <p class="tip">「물때」의 4년 뒤 이야기입니다. 1편을 먼저 하면 더 많은 것이 보입니다.<br>진행은 이 브라우저에 자동 저장됩니다. 소리가 납니다.<br>위험한 장면은 직접 보여 주지 않고 돌려서 표현합니다.</p></div>`;
   $("#new").onclick = () => { audio(); S = newState(); next(); };
