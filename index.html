@@ -317,6 +317,13 @@ html.en .judge-btn { letter-spacing: .18em; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+.notice-screen { padding: 24px 16px; }
+.notice { max-width: 30em; display: flex; flex-direction: column; align-items: center; gap: 0; }
+.notice .notice-mark { font: 600 11px var(--f-ui); letter-spacing: .4em; padding-left: .4em; color: var(--muted); margin: 0 0 14px; }
+.notice h2 { font-family: var(--f-verdict); font-weight: 800; font-size: clamp(22px, 6vw, 28px); letter-spacing: .06em; margin: 0 0 22px; padding-bottom: 18px; border-bottom: 1px solid var(--line); width: 100%; }
+.notice p { font-size: 15px; line-height: 1.85; margin: 0 0 12px; word-break: keep-all; }
+.notice p.muted { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.notice .btn { margin-top: 26px; }
 </style>
 </head><body>
 <div id="app"></div>
@@ -2496,6 +2503,26 @@ function gate(start) {
   };
 }
 
+/* 픽션 고지: 비밀번호를 통과한 뒤, 타이틀(또는 이어 하던 화면) 전에 매번 한 번 보여 준다 */
+Object.assign(UI_EN, {
+  "이 이야기는 픽션입니다": "This Is a Work of Fiction",
+  "이 게임에 나오는 인물, 이름, 단체, 지명, 장소, 사건은 모두 창작된 허구입니다.": "All characters, names, organizations, places, and events in this game are products of the author's imagination.",
+  "실존하는 인물이나 단체, 장소, 사건과는 아무런 관련이 없으며, 비슷한 부분이 있더라도 우연의 일치입니다.": "Any resemblance to actual persons, living or dead, or to real organizations, places, or events is purely coincidental.",
+  "범죄와 사적 제재를 소재로 다루지만, 어떤 폭력이나 범죄도 정당화하거나 미화하지 않습니다.": "This story deals with crime and vigilante justice, but it does not condone or glorify violence or crime of any kind.",
+  "확인했습니다.": "I understand."
+});
+function notice(start) {
+  $("#app").innerHTML = `<div class="title-screen notice-screen">${langSwitchHTML()}<div class="notice">
+    <p class="notice-mark">NOTICE</p><h2>${tr("이 이야기는 픽션입니다")}</h2>
+    <p>${tr("이 게임에 나오는 인물, 이름, 단체, 지명, 장소, 사건은 모두 창작된 허구입니다.")}</p>
+    <p>${tr("실존하는 인물이나 단체, 장소, 사건과는 아무런 관련이 없으며, 비슷한 부분이 있더라도 우연의 일치입니다.")}</p>
+    <p class="muted">${tr("범죄와 사적 제재를 소재로 다루지만, 어떤 폭력이나 범죄도 정당화하거나 미화하지 않습니다.")}</p>
+    <button class="btn red" id="notice-ok" type="button">${tr("확인했습니다.")}</button></div></div>`;
+  bindLangSwitch($("#app"), () => notice(start));
+  const ok = $("#notice-ok"); ok.focus();
+  ok.onclick = () => { SFX.click(); start(); };
+}
+
 /* ---------- 언어 전환: 한국어 데이터 ↔ EN 데이터를 제자리에서 바꿔 끼운다 ---------- */
 const DATA_REF = { ITEMS, DOCS, LOCKS, WRONG, JUDGE, INTERFERE, FAIL_REASON, HEE_MAILS, SCRIPT, FINAL, FAIL };
 const KO = {};
@@ -2571,7 +2598,7 @@ function runEnd() {
 
 /* 시작 */
 window.__game = { get S() { return S; }, jump(i) { S.step = i; enterStep(); }, SCRIPT, JUDGE, LOCKS };
-gate(render);
+gate(() => notice(render));
 
 </script>
 </body></html>
