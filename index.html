@@ -3,7 +3,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=IBM+Plex+Sans:wght@300;400;500;600&family=EB+Garamond:wght@400;600;800&family=Caveat:wght@400;600&display=swap">
 <style>
 /* 레이아웃: 위 상태줄 / 가운데 원룸(왼쪽 표적 프로필) / 아래 가방. 프롤로그는 1편처럼 화면 가운데 핸드폰. */
 :root {
@@ -298,6 +298,22 @@ input { font: inherit; }
   .phone-stage { padding: 0; }
   .phone-stage .phone { width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
 }
+/* 언어 단추 + 영어판 글꼴 (손글씨 Caveat은 나눔펜보다 커서 조금 줄인다) */
+.title-screen > .langsw, .langsw { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 3; display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: rgba(11,12,15,.6); }
+.langsw button { font: 500 13px var(--f-ui); color: var(--muted); background: none; border: 0; padding: 7px 13px; cursor: pointer; }
+.langsw button.on { color: var(--fg); background: #2a2d35; }
+html.en { --f-ui: "IBM Plex Sans", "IBM Plex Sans KR", system-ui, sans-serif; --f-verdict: "EB Garamond", "Nanum Myeongjo", Georgia, serif; --f-hand: "Caveat", "Nanum Pen Script", cursive; }
+html.en .title-screen h1 { font-size: clamp(38px, 10.5vw, 84px); letter-spacing: .1em; padding-left: .1em; }
+html.en .title-screen .sub { letter-spacing: .32em; padding-left: .32em; }
+html.en .doc.hand { font-size: 22px; }
+html.en .doc .hi { font-size: 21px; }
+html.en .lock-note { font-size: 23px; }
+html.en .strip { font-size: 20px; }
+html.en .vl.v1 { font-size: 20px; }
+html.en .vlog .v1 { font-size: 19px; }
+html.en #narr .ln.v1 { font-size: 24px; }
+html.en .vpaper h5 { letter-spacing: .3em; padding-left: .3em; }
+html.en .judge-btn { letter-spacing: .18em; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
@@ -308,6 +324,24 @@ input { font: inherit; }
 <div id="voice"></div>
 <div id="toast"></div>
 <script>
+/* =====================================================================
+   언어 (KO / EN). 주소 뒤 ?lang=en 또는 ?lang=ko 로 바로 지정할 수 있다.
+   지정이 없으면 이전에 고른 언어 → 브라우저 언어(한국어면 KO, 아니면 EN) 순.
+   ===================================================================== */
+const LANG_KEY = "muldae2_lang";
+let LANG = (() => {
+  try { const q = new URLSearchParams(location.search).get("lang"); if (q === "en" || q === "ko") { localStorage.setItem(LANG_KEY, q); return q; } } catch (e) {}
+  try { const v = localStorage.getItem(LANG_KEY); if (v === "en" || v === "ko") return v; } catch (e) {}
+  return /^ko/i.test(navigator.language || "ko") ? "ko" : "en";
+})();
+const UI_EN = {};
+/* 화면 문구 번역. EN일 때 UI_EN에 있으면 바꾸고, {k} 자리는 vars로 채운다 */
+function tr(s, vars) {
+  let out = LANG === "en" && UI_EN[s] != null ? UI_EN[s] : s.split("|")[0];
+  if (vars) for (const k in vars) out = out.split("{" + k + "}").join(vars[k]);
+  return out;
+}
+
 /* =====================================================================
    물때 2 (가제) · 스토리 데이터
    ★ 임시 이름(구재만, 엄기태, 이하준, 백인호, 진태성, 정유진, 김준서, 이도윤, 정민호)은
@@ -810,6 +844,579 @@ const FAIL = {
   last: "법은 불합리함이 있음에도 불구하고 질서를 지켜야 한다."
 };
 
+/* =====================================================================
+   English version · story data (same shape as the Korean data above)
+   "*" = the first personality, "-" = the second (the Judge), "“" = someone else.
+   ===================================================================== */
+const EN = {};
+EN.ITEMS = {
+  plier:    { n: "Pliers", d: "A pair of pliers from the toolbox." },
+  hammer:   { n: "Hammer", d: "A heavy hammer. Loud." },
+  driver:   { n: "Screwdriver", d: "A Phillips screwdriver. Loosens screws. Tightens them." },
+  gloves:   { n: "Gloves", d: "Thin work gloves. They leave no fingerprints." },
+  idcard:   { n: "My ID card", d: "A card with my real name and my face on it." },
+  phone:    { n: "My phone", d: "A phone registered in my name. Wherever it goes, the cell towers keep a record." },
+  fakeid:   { n: "Fake access badge", d: "A Saebit Asset Management staff badge. The name says Lee Do-yun★. The photo is me." },
+  carkey:   { n: "Ghost car key", d: "A gray sedan. Someone else's name on the papers, someone else's plates." },
+  memo:     { n: "Route note", d: "Han Sang-chul's torn note, pieced back together. Um Ki-tae's Friday night." },
+  cap:      { n: "Cap", d: "A black baseball cap." },
+  workwear: { n: "Inspection uniform", d: "An “Electrical Inspection” vest and coveralls. The kind of outfit nobody looks at twice." },
+  hanbox:   { n: "Han Sang-chul's box", d: "A small box Han Sang-chul sent. I didn't ask what was inside. He didn't say." },
+  parts:    { n: "Leftover parts", d: "A tangle of wire left over from last time." },
+  cashbag:  { n: "Cash briefcase", d: "A briefcase packed with bundles of 50,000-won notes. Heavy." },
+  namecard: { n: "Fake business card", d: "“Jung Min-ho★, Manager, Sales Planning Team, Daesung Construction.”" },
+  suit:     { n: "Suit", d: "A dark navy suit. Not worn once since I got out." }
+};
+
+EN.DOCS = {
+  fridge: { title: "Sticky Note on the Fridge", style: "hand",
+    text: "Eat.\nTake your meds.\nWednesday, 10:00, counseling.\nAnd stop." },
+  apology: { title: "Letter of Apology", style: "paper", voice: "-The page he read every single night.",
+    text: st => st < 3
+      ? "LETTER OF APOLOGY\n\nI stopped time for four people.\nMr. Oh Kwang-su. Professor Moon Sung-ho. And Mom and Dad.\n\nThe law gave me four years.\nI counted every one of those days. I never missed one. 1,461 days.\nBut that number didn't pay back anything.\n\nI promised myself that the day I walked out would be the day I was born again.\nAnd that if the other one ever came back, I would stop him, no matter what.\n\nHave I paid the full price?\nI don't know. And because I don't know, I stop. Every day, I stop."
+      : "LETTER OF APOLOGY\n\nI ░░░ time for four people.\n…\nThe law ░░░ me four years.\nI counted every one of those days. I never missed one. 1,46░…\n\n(The bottom half has been torn away.)" },
+  scraps: { title: "News Clippings", style: "plain", voice: "-This is where the apology letter used to hang.",
+    text: "Articles cover the wall.\n\n“The ‘Judge’ Craze: Online Support Tops 70%”\n“Justice the Law Couldn't Deliver, or Vigilantism?”\n“Police Form Task Force to Catch ‘The Judge’”" },
+  calendar: { title: "Counseling Schedule", style: "print",
+    text: st => {
+      let s = "Hangyeol Counseling Center · Counselor Jung Yu-jin★\nEvery Wednesday, 10:00 a.m.\n\n7/18 ✓   7/25 ✓   8/1 ✓   8/8 ✓\n8/15 ✓   8/22 ✓   8/29   9/5   9/12";
+      if (st >= 3) s += "\n\nThe 8/29 box has been crossed out. Beside it, in handwriting I don't recognize:\n“Moved to 8/30 (Thu) 21:00, video session”";
+      if (st >= 4) s += "\n\nThe September boxes are blank. Someone erased them.";
+      return s + "\n\n[Handwritten] Don't skip these. For that one hour, I'm me.";
+    } },
+  rules: { title: "Draft Verdict", style: "verdict", voice: "-This one, he couldn't tear down.",
+    text: "THE PRINCIPLES OF JUDGMENT\n\nOne. They pay in a way that fits the crime.\n\nTwo. Judgment falls on the guilty one alone. No one else gets hurt.\n\nThree. Leave nothing at the scene but the verdict. Carry nothing that points back to me." },
+  release: { title: "Certificate of Release", style: "print", voice: "-The paper he took out and stared at every day.",
+    text: "CERTIFICATE OF RELEASE\n\nInmate No.   2741\nSentence ends   July 14, 202×\nReason   Sentence served in full\nProbation   2 years (weekly mental health counseling required)\n\nWarden, ○○ Correctional Facility" },
+  visits: { title: "Visit Request Log", style: "print", voice: "-Forty-seven times. He never saw him once.",
+    text: "VISIT REQUEST LOG (copy)\n\nRequested by   Seo Ji-hoon (friend)\n\n08/02/202×   Declined (inmate's choice)\n09/06/202×   Declined (inmate's choice)\n12/24/202×   Declined (inmate's choice)\n      ⋮\n03/15/202×   Declined (inmate's choice)\n07/10/202×   Declined (inmate's choice)\n\n47 requests · 0 visits" },
+  letter: { title: "Ji-hoon's Letter", style: "paper", voice: "*Don't open that… please.",
+    text: "(Fifty-two unopened letters in the drawer. I tore open the one on top.)\n\nWriting again. Number 52.\n\nI went again on July 10 and came home without seeing you. Nobody will tell me when you're getting out.\n\nEvery July 14, I still go to that beach. At 5 p.m. The exact time you told me not to come.\nWhatever I meant to tell you that day, I'll say it to your face when you're out.\n\nMake sure you're eating.\n— Ji-hoon" },
+  textbook: { title: "Circuit Theory", style: "textbook", voice: "-My second major, electrical engineering. I have him to thank for that." },
+  mirror: { title: "Mirror", style: "plain",
+    text: st => st < 3
+      ? "Written on the mirror in black marker:\n\nS T O P\n\nAnd below it, smaller: Never again, with this face."
+      : st < 4
+        ? "The words on the mirror have changed.\n\nJ U D G E\n\nWritten over the spot where “STOP” was wiped away. In my handwriting."
+        : "The words on the mirror have changed.\n\nJ U D G E\n\nThe face in the mirror is smiling. I never smiled." },
+  postitBed: { title: "Sticky Note on the Box", style: "hand", voice: "-Cute.",
+    text: "Don't open this.\nIf you do, you'll stop someone's time again." },
+  postitCar: { title: "Sticky Note on the Safe", style: "hand", voice: "-I'm nothing like that man. I'm stone-cold sober.",
+    text: "Don't ever get behind the wheel again.\nDon't turn into that man." },
+  scrap: { title: "Scrap of the Apology Letter", style: "hand", voice: "-If you don't know, I'll decide for you.",
+    text: "…Have I paid the full price?\nI don't know. And because I don't know, I stop." },
+  list: { title: "Judgment List", style: "verdict",
+    text: st => "JUDGMENT LIST\n\nKoo Jae-man — judged\nUm Ki-tae — judged\nBaek In-ho — judged\nJin Tae-sung — " + (st >= 5 ? "judged\n\nOne who has not paid in full: the other one" : "") }
+};
+
+/* Locks. Every answer comes from combining traces the first personality left in the room with the target profiles. */
+EN.LOCKS = {
+  toolbox1: { title: "Toolbox Padlock", kind: "digits", len: 4, answer: "0714",
+    note: "To you, if you're trying to open this:\nthe code is the day I was born again.",
+    special: { "0604": "*That's the day YOU were born. Not me.", "1103": "*That's the day Mom gave birth to me. Not the day I was born again." },
+    openVoice: "-The day he got out. So very him.",
+    contents: [{ item: "plier" }, { item: "hammer" }, { item: "driver" }] },
+  safe2: { title: "Safe", kind: "digits", len: 4, answer: "1109",
+    note: "The day that boy was taken.\nYou never even knew his name.",
+    special: { "0602": "*That's the day that man walked free. Not the day the boy was taken." },
+    openVoice: "-Lee Ha-jun. Now I know.",
+    contents: [{ text: "A single car key. On the tag, in Han Sang-chul's handwriting: “Empty lot, 300 m past the intersection”" }, { item: "carkey" }] },
+  memo2: { title: "Torn Note", kind: "order", result: "memo",
+    note: "A note from Han Sang-chul. The other one tore it into four pieces. Put them back together in order.",
+    pieces: ["Friday nights, he never calls a driver to take him home.", "23:52 — he parks in the public lot outside his apartment.", "23:55 — he walks across that crosswalk.", "He doesn't look at the light. Just like that night. — Sang-chul"],
+    shown: [2, 0, 3, 1],
+    openVoice: "-23:55. That crosswalk." },
+  closet3: { title: "Closet Padlock", kind: "digits", len: 4, answer: "0710",
+    note: "The last day\nJi-hoon came to see me.",
+    special: { "0714": "*That's the day I got out. He never knew that date." },
+    openVoice: "-The forty-seventh no. He even memorized the date.",
+    contents: [{ text: "An inspection uniform and gloves." }, { item: "workwear" }, { item: "gloves" }] },
+  box3: { title: "Han Sang-chul's Box", kind: "digits", len: 4, answer: "1461", resistors: true,
+    note: "The days I counted.",
+    special: { "0714": "*That's the day it ended. Not the days I counted." },
+    openVoice: "-1,461 days. A box locked with the days he counted.",
+    contents: [{ text: "The other one had taped Han Sang-chul's box shut again and hidden it in here." }, { item: "hanbox" }] },
+  case4: { title: "Suitcase", kind: "text", answer: ["thejudge", "judge"],
+    note: "The last lock.\nWho are you?\nWrite your name. Not mine.",
+    special: { "me": "*That's my answer.", "i": "*That's my answer.", "myself": "*That's my answer.", "theotherone": "*The other one… is me.", "him": "*The other one… is me.", "mra": "*That's what the news calls me. It's my name too.", "a": "*That's what the news calls me. It's my name too." },
+    openVoice: "*Right. You're the Judge. …Then who am I?",
+    contents: [{ item: "cashbag" }] }
+};
+EN.WRONG = ["*Please, stop.", "*Stop this. It's not too late.", "*You can't open this.", "*Stop. Please."];
+
+/* The four judgments (English). need = must pack, trap = packing it means failure. */
+EN.JUDGE = {
+  1: {
+    label: "First Judgment", target: "Koo Jae-man★", t: "7/26 21:00", stage: 1, slots: 3, scene: "office",
+    need: ["plier", "fakeid"], trap: ["hammer", "idcard", "phone"],
+    profile: {
+      eyebrow: "Target 1 · CEO, Hanbit Capital", name: "Koo Jae-man★ (55)",
+      rows: [
+        ["Crime", "Ringleader of “Hanbit Capital,” a voice-phishing ring whose callers posed as prosecutors' investigators.\n212 victims, roughly 6.1 billion won stolen. Among the victims were the other one's parents."],
+        ["Sentence under law", "Trial court: 7 years in prison → On appeal (Nov 20, 202×): 3 years, suspended for 5.\n“He has paid partial restitution and shows deep remorse.” Defended by a team of former judges and prosecutors."],
+        ["What he is", "One phone call and a few smooth words, and he took people's whole lives. In court, the same smooth words set him free."],
+        ["Now", "CEO of “Saebit Asset Management,” the same loan business under a new name. 7th floor, ○○ Building, Juan-dong, Incheon."],
+        ["Routine", "His four employees leave at 19:00. Every Thursday night he stays behind alone, doing the books until 23:30. Staff arrive Friday at 08:40."],
+        ["Access & security", "The building only opens with a tap of a staff badge. No security guard. Han Sang-chul switches off the elevator CCTV on Thursdays, 22:00–24:00."],
+        ["People around him", "Separated from his wife. His children no longer speak to him."]
+      ],
+      han: "I made the badge under an employee's name, “Lee Do-yun,” and sent it by courier.\nLeave your phone. The cell towers record everything.\nDon't bring a single thing with your real name on it."
+    },
+    replace: {
+      toolbox: [{ lock: "toolbox1" }],
+      bed: [{ doc: "postitBed" }, { text: "A courier box. Opened once, then taped shut again. The other one looked inside and hid it." }, { item: "fakeid" }, { item: "gloves" }]
+    },
+    pre: ["date:Thursday, July 26 · 23:02", "Saebit Asset Management. 7th floor.", "I tapped the badge and the door opened. Employee: Lee Do-yun.", "Only the office at the end of the hall had its lights on."],
+    sceneTitle: "Saebit Asset Management Office", sceneCap: "Thursday 23:04",
+    success: ["“Wh-who are you? Do you work here?”", "-Mr. Koo Jae-man. The man who took 212 people's lives with a phone call.", "-Tonight, it's your turn to answer.", { blackout: true }, "“Wait, just let me explain…”", "-You've done more than enough talking."],
+    phrase: "He who rose by his tongue shall fall by his tongue.",
+    verdict: { who: "Koo Jae-man", crime: "Fraud (212 victims)", law: "3 years, suspended for 5", pay: "His tongue" }
+  },
+  2: {
+    label: "Second Judgment", target: "Um Ki-tae★", t: "8/10 22:30", stage: 2, slots: 3, scene: "road",
+    need: ["carkey", "memo"], trap: ["plier", "hammer", "idcard", "phone"],
+    profile: {
+      eyebrow: "Target 2 · Drunk driver who killed a student", name: "Um Ki-tae★ (48)",
+      rows: [
+        ["Crime", "Five years ago, November 9, 2:10 a.m., driving blackout drunk.\nHit and killed Lee Ha-jun★ (21), a college student, on the crosswalk at ○○ Intersection in Yeonsu-gu, Incheon."],
+        ["Sentence under law", "2 years in prison, suspended for 3 (sentenced June 2, 202×).\n“The court took into account his deep remorse and that this was his first offense.”"],
+        ["What he is", "He took a life and went home on the strength of a few pages of apology. Then he drank again and got back behind the wheel."],
+        ["Now", "Got his license back once the suspended sentence ran out. Sales director at a logistics company."],
+        ["Routine", "From Han Sang-chul's three months of records: a work dinner every Friday. He never calls a driver; he drives himself home. 11 dashcam clips."],
+        ["Route", "Han Sang-chul sent his exact time home separately, in a note. Public lot outside his apartment → on foot across the crosswalk at ○○ Intersection → home.\nThe very crosswalk where Lee Ha-jun died."],
+        ["People around him", "A wife, and a daughter in high school. Always alone on the walk home on Friday nights."]
+      ],
+      han: "The car is a ghost car. I sent you the key. It's parked in the empty lot 300 m past the intersection.\nWhen it's done, I'll get rid of the car.\nLeave your phone."
+    },
+    replace: {
+      safe: [{ doc: "postitCar" }, { lock: "safe2" }],
+      trash: [{ lock: "memo2" }],
+      closet: [{ text: "A few clothes." }, { item: "cap" }]
+    },
+    pre: ["date:Friday, August 10 · 23:48", "The empty lot, 300 m past the intersection.", "I started the ghost car. I didn't turn on the radio.", "23:52. His car pulled into the public lot. Just like the note said."],
+    sceneTitle: "Crosswalk at ○○ Intersection", sceneCap: "Friday 23:54",
+    success: ["23:55. He stepped onto the crosswalk. He didn't look at the light.", "-Five years ago, Lee Ha-jun stood right here.", "I switched on the headlights.", { blackout: true }, "When I opened my eyes again, the crosswalk was empty."],
+    phrase: "You took a life. Now pay with yours.",
+    verdict: { who: "Um Ki-tae", crime: "Drunk driving resulting in death (Lee Ha-jun, 21)", law: "2 years, suspended for 3", pay: "A life" }
+  },
+  3: {
+    label: "Third Judgment", target: "Baek In-ho★", t: "8/30 19:30", stage: 3, slots: 3, scene: "studyroom",
+    need: ["hanbox", "driver", "workwear"], trap: ["hammer", "idcard", "phone", "plier"],
+    profile: {
+      eyebrow: "Target 3 · Architect of the Daesung Securities stock fraud", name: "Baek In-ho★ (61)",
+      rows: [
+        ["Crime", "The real mastermind behind the Daesung Securities market manipulation 14 years ago.\nHe set up the scheme together with the other one's parents."],
+        ["Sentence under law", "None. Employee Han Sang-chul alone went to prison, for 3 years.\nProfessor Moon Sung-ho, the firm's risk-management adviser, testified that “Han acted alone.”"],
+        ["What he is", "He pinned his crime on someone else, then spent 14 years taking out the old ledgers to look at them."],
+        ["Now", "Runs an “investment advisory” office by himself out of Unit 1204, ○○ Officetel, Songdo."],
+        ["Routine", "Out every day from 19:00 to 21:40. Gets home around 22:00, and the first thing he does is turn on the computer in that room.\nThe computer that holds the ledgers from 14 years ago. Only he knows the password. Baek In-ho is the only person who ever turns it on."],
+        ["Access", "Han Sang-chul will put up an “Electrical Inspection” notice for 8/30. Nobody questions a man in an inspection uniform. Han Sang-chul will open the door.\nThe computer case is screwed shut."],
+        ["People around him", "A housekeeper (Mon & Thu, 14:00–16:00). His daughter stops by now and then."]
+      ],
+      han: "I've prepared the box. Don't open it. Just leave it in place.\nThat night you need to be in a video session from 21:00. I've asked your counselor to change the time.\nLeave your phone."
+    },
+    replace: {
+      closet: [{ lock: "closet3" }],
+      bed: [{ lock: "box3" }],
+      trash: [{ doc: "scrap" }]
+    },
+    pre: ["date:Thursday, August 30 · 19:58", "Songdo, ○○ Officetel, Unit 1204.", "A man in an inspection uniform walked past the “Electrical Inspection” notice. Nobody looked at him.", "Han Sang-chul opened the door. Inside the room, a single computer."],
+    sceneTitle: "Unit 1204 · Study", sceneCap: "Thursday 20:03 · Baek In-ho is out",
+    success: ["20:14. I tightened the screws on the case again. The box looked like it had always been there.", { blackout: true }, "date:21:00", "The video session. Ms. Jung Yu-jin smiled.", "“You look more at ease today.”", "-I am. I've been sleeping well lately.", "*…Ms. Jung, I…", "-…Never mind. It's nothing.", "date:21:58", "Just like every other night, he turned on the computer.", { sfx: "far" }, "Far away, a very short sound."],
+    phrase: "The sin you pinned on another comes home to you.",
+    verdict: { who: "Baek In-ho", crime: "Market manipulation; framed Han Sang-chul for it", law: "None", pay: "Together with his ledgers" }
+  },
+  4: {
+    label: "Fourth Judgment", target: "Jin Tae-sung★", t: "9/14 19:30", stage: 4, slots: 3, scene: "mansion",
+    need: ["cashbag", "namecard", "suit"], trap: ["hammer", "idcard", "phone", "parts", "fakeid"],
+    profile: {
+      eyebrow: "Target 4 · Three-term National Assembly member", name: "Jin Tae-sung★ (63)",
+      rows: [
+        ["Crime", "Suspected of taking hundreds of millions of won from a construction company 14 years ago in exchange for burying the Daesung Securities fraud investigation.\nHe buried the press coverage, too."],
+        ["Sentence under law", "None. Investigation closed in July 202×, no charges filed.\n“I don't recall.”"],
+        ["What he is", "He took money to bury other people's crimes, and got through it all with three words: I don't recall."],
+        ["Now", "A sitting lawmaker."],
+        ["Routine", "Friday nights at 21:00, he receives “guests” in the study of his home in Seongbuk-dong. Guests who bring cash.\nOn those nights he sends his aides and bodyguards home early and switches off the house CCTV himself."],
+        ["Access", "He checks a guest's face and bag over the intercom first. He won't open the door to anyone who isn't wearing a suit. He asks for a business card before anything else."],
+        ["People around him", "His family lives abroad. Alone on Friday nights."]
+      ],
+      han: "You're Jung Min-ho, a manager at Daesung Construction. I sent the business cards by courier.\nThe briefcase has to hold real cash. He checks the weight first.\nLeave your phone."
+    },
+    replace: {
+      closet: [{ text: "A suit on a hanger. And a suitcase I've never seen before." }, { item: "suit" }, { lock: "case4" }],
+      bed: [{ text: "Left over from last time." }, { item: "parts" }],
+      desk: [{ action: "phone" }, { item: "phone" }, { text: "A courier envelope from Han Sang-chul. This time, the other one didn't hide it. As if he no longer had the strength." }, { item: "namecard" }],
+      trash: [{ doc: "scrap" }],
+      drawer: [{ doc: "release" }, { doc: "visits" }, { doc: "letter" }, { item: "idcard" }, { text: "The fake badge from last time is still in here, too." }, { item: "fakeid" }]
+    },
+    pre: ["date:Friday, September 14 · 20:55", "Seongbuk-dong.", "I rang the bell. A voice came through the intercom.", "“Who is it?”", "-Jung Min-ho, Daesung Construction. I've brought what we prepared.", "The door opened. But only after he'd checked how heavy the briefcase was."],
+    sceneTitle: "Jin Tae-sung's Study", sceneCap: "Friday 21:02",
+    success: ["“Leave the money there and go.”", "-No, sir. This is all for you.", "-You've loved it your whole life, after all.", { blackout: true }, "The lights in the study went out. To the very end, he couldn't take his eyes off the briefcase."],
+    phrase: "He who lived for money died by money.",
+    verdict: { who: "Jin Tae-sung", crime: "Bribery; buried the Daesung Securities crimes", law: "None (no charges)", pay: "That money" }
+  }
+};
+
+/* How much the first personality interferes at the scene (per judgment) */
+EN.INTERFERE = {
+  1: [],
+  2: ["*No…"],
+  3: ["*He has a daughter too.", "-Principle two. His daughter isn't here tonight.", "*Please…"],
+  4: ["*Stop!", "*If you judge this one too, there'll be nothing left to go back to.", "*These are my hands. MY hands!", "*I… still haven't found my answer."]
+};
+
+EN.FAIL_REASON = { miss: "Something that should have been in the bag wasn't.", trap: "Something that should never have been in the bag was." };
+
+/* Story order (English). Must keep exactly the same steps and batches as the Korean SCRIPT. */
+EN.HEE_MAILS = [
+  { date: "Nov 2, 2025", from: "Hee-ju", subject: "(no subject)", body: "I watched the trial.\nWhat you said, that it was because of me… I still don't know how I feel. Whether I'm angry, or sad." },
+  { date: "Nov 3, 2026", from: "Hee-ju", subject: "Birthday", body: "Happy birthday.\nI don't know if I'm even allowed to say that." },
+  { date: "Mar 21, 2027", from: "Hee-ju", subject: "(no subject)", body: "I graduated. I just wanted to tell someone. To tell you." },
+  { date: "Nov 3, 2028", from: "Hee-ju", subject: "Birthday", body: "Happy birthday." },
+  { date: "Jul 14, 2029", from: "Hee-ju", subject: "Today", body: "I heard you get out today.\nYou don't have to write back. Just stay alive." }
+];
+EN.SCRIPT = [];
+EN.SCRIPT.push(
+  { type: "title" },
+  { type: "narr", t: "7/14 11:00", name: "A씨", lines: [
+    "date:Saturday, July 14, 202×",
+    "Four years ago today, I called the police and turned myself in.",
+    "The prison gate opened. No one was there to meet me. I was the one who'd asked them not to tell anyone my release date.",
+    "An envelope had come for me at the prison. Inside: the key and lease to a studio apartment, and a new phone.",
+    "The sender line was blank. I decided to believe it was someone's kindness.",
+    "Two years of probation. Psychiatric counseling every Wednesday."
+  ] }
+);
+EN.SCRIPT.push({ type: "phone", name: "A씨", done: "Go to bed", batches: [
+  { t: "7/14 15:20", items: [
+    { msg: "probation", name: "Probation Office", lines: ["[Probation Office] Notice: Your probation has begun", "Designated residence: Studio 302, ○○-ro, Michuhol-gu, Incheon", "Mental health counseling: Wednesdays at 10:00\n(Counselor Jung Yu-jin★, Hangyeol Counseling Center)", "First session: 7/18 (Wed)"] },
+    { mails: true },
+    { voice: "*I logged back into my email. Hee-ju's emails had piled up. I hadn't answered a single one." }
+  ] },
+  { t: "7/14 18:00", items: [
+    { news: { id: "n1", press: "Yonhap News", title: "Man in His 20s Who Killed Four, Including His Parents, Released After Four Years",
+      body: "A man in his 20s, identified only as A, who took four lives, including those of his own parents, in the Galmae Beach case and related killings four years ago, was released on the 14th.\n\nThe court had accepted a psychiatric evaluation finding that A suffers from dissociative identity disorder (split personality) and that his judgment was severely impaired at the time. His voluntary surrender, the letters of apology he submitted throughout his sentence, and his status as a model inmate were also counted in his favor.\n\nA will remain on probation and attend psychiatric counseling once a week.",
+      cmts: [["Anonymous", "Four people, four years? That's one year a head"], ["Anonymous", "So if you've got two personalities, they split the sentence in half?"], ["Anonymous", "He turned himself in, so that's it? What about the families?"]],
+      voice: "*I read the article to the end. The comments, too. One year a head." } }
+  ] },
+  { t: "7/15 11:00", items: [
+    { news: { id: "n2", press: "KBS", title: "Galmae Beach Victims' Families: “Is Four Years the Price?”",
+      body: "The widow of the late restaurant owner Oh Kwang-su and the daughter of the late university professor Moon Sung-ho held a press conference on the 15th.\n\n“He got four years because he said he was sorry. Does being sorry bring people back?”",
+      voice: "*I had no answer to that question." } }
+  ] },
+  { t: "7/16 09:30", items: [
+    { news: { id: "n3", press: "MBC", title: "Bribery Probe into Rep. Jin Tae-sung Closed with No Charges",
+      body: "Prosecutors have declined to charge three-term lawmaker Jin Tae-sung★, citing insufficient evidence, over allegations that he accepted hundreds of millions of won from a construction company. Questioned four years ago, Jin said only, again and again, “I don't recall.”",
+      voice: "*Four years. The same four years as mine. And he didn't spend a single day locked up." } }
+  ] },
+  { t: "7/17 18:00", items: [
+    { msg: "center", name: "Hangyeol Counseling Center", lines: ["[Hangyeol Counseling Center] Reminder: you have an appointment tomorrow (7/18, Wed) at 10:00. Counselor: Jung Yu-jin"] }
+  ] },
+  { t: "7/18 10:50", items: [
+    { narr: ["date:Wednesday, July 18 · 10:00", "Hangyeol Counseling Center.", "“What do you find yourself thinking about most these days?”", "*…Whether I've paid for what I did. In full.", "“Who would you want to decide that?”", "*The law. The law said four years, so four years has to be right.", "“Do you believe that?”", "I couldn't answer."] },
+    { msg: "center", name: "Hangyeol Counseling Center", lines: ["This is Jung Yu-jin. Thank you for talking with me today.", "It's all right to carry a question without an answer for a long time. See you next Wednesday."] }
+  ] },
+  { t: "7/20 23:40", items: [ { voice: "*I can't sleep." } ] }
+] });
+EN.SCRIPT.push(
+  { type: "narr", lines: [
+    "date:July 20, night",
+    "-Who do you think found you this place?",
+    "It was the first time I'd heard that voice in four years.",
+    "*…Someone's kindness.",
+    "-That kindness was me. Money I put aside before you called the police. This room, and everything else we're going to need.",
+    "*Stop. I've paid for what I did.",
+    "-Paid? You saw the restaurant owner's wife crying. And Jin Tae-sung never spent a day inside.",
+    "-We trusted the law, and even we didn't pay the full price. Do you honestly think the prices they set are fair?",
+    "*……",
+    "-You can't answer. That's the sound of the door opening.",
+    "-I told you I'd be back.",
+    { glitch: true }, { rename: "심판자" },
+    "I opened my eyes. There was a phone in my hand.",
+    "-From now on, I only look at this when I need to."
+  ] },
+  { type: "phone", name: "심판자", done: "Put the phone down", batches: [] },
+  { type: "narr", t: "7/21 09:10", lines: [
+    "date:Saturday, July 21 · Morning",
+    "The room was exactly as the other one had left it.",
+    "The apology letter on the wall. Sticky notes everywhere that said STOP.",
+    "-Cute.",
+    "-Let's look around. See what he left behind."
+  ] },
+  { type: "room", stage: 0, done: "Make Koo Jae-man the target", batches: [
+    { t: "7/21 09:20", items: [
+      { news: { id: "n4", stamp: "Nov 20, 202× (3 years ago)", press: "Incheon Ilbo", title: "“Hanbit Capital” Ringleader Koo Jae-man Walks Free on Appeal with Suspended Sentence",
+        body: "Koo Jae-man★ (52), ringleader of the voice-phishing ring “Hanbit Capital,” which posed as prosecutors' investigators to swindle about 6.1 billion won from 212 people, was sentenced on appeal to three years in prison, suspended for five, and released.\n\nThe court said, “He has paid partial restitution and shows deep remorse.” Koo was represented by a team of former judges and prosecutors.",
+        cmts: [["Victim's family", "My mother still hasn't gotten a single won of that money back."]],
+        voice: "-Koo Jae-man. The one who made the call to the other one's parents." } }
+    ] },
+    { t: "7/21 23:10", items: [
+      { msg: "han", name: "Unknown", lines: ["We should meet and talk.", "Four years late, but still.", "It's Han Sang-chul.", "June 20, that night at Galmae Beach. I saw you send the professor into the sea.", "So I confessed in your place. I didn't know how you'd done it, so I made it all up.", "I've spent four years getting ready. A new name, since mine belongs to a dead man now. One for you, too.", "I get the information. I open the doors. You do the judging.", "You saw the Koo Jae-man article. I'm the one who brought it back up.", "Let's start with him."] },
+      { rename: { thread: "han", name: "Han Sang-chul" } },
+      { voice: "-Someone had been waiting four years for me." }
+    ] }
+  ] },
+  { type: "narr", lines: [
+    "I wrote back. “Let's do it.”",
+    "A few minutes later, a file came through. Photos, crimes, sentences, routines.",
+    "-Then I wrote the principles on the wall. Where he couldn't tear them down.",
+    "date:Monday, July 23",
+    "When I opened my eyes, it was afternoon. Three hours I don't remember.",
+    "-This time the gap is on my side. Hours when he was the one awake.",
+    "The package Han Sang-chul sent wasn't at the door. Neither were the tools I'd ordered.",
+    "-He hid them.",
+    "-Fine. I'll find them.",
+    "date:Thursday, July 26 · 21:00 · Judgment Day"
+  ] },
+  { type: "judge", j: 1 }
+);
+
+EN.SCRIPT.push(
+  { type: "room", stage: 2, t: "7/27 08:00", done: "Make Um Ki-tae the target", batches: [
+    { t: "7/27 11:20", items: [
+      { news: { id: "n5", press: "YTN", title: "CEO in His 50s Found Dead in Incheon Loan Office… a “Verdict” Left on His Desk",
+        body: "An employee arriving for work on the morning of the 27th found Mr. Koo (55), the head of a loan company in Juan-dong, Incheon, dead in his office and called the police. Koo had been charged as the ringleader of the voice-phishing ring “Hanbit Capital” before walking free on appeal with a suspended sentence.\n\nOn the desk lay a sheet of paper laid out like a court verdict, listing Koo's crime, the sentence he received, and an entry headed “The Price.” At the bottom of the page were the words “The Judge.”",
+        cmts: [["Anonymous", "I know I shouldn't, but I'm clapping"], ["Anonymous", "Vigilante justice is a crime"], ["Anonymous", "A verdict… signed “The Judge”"]] } }
+    ] },
+    { t: "7/27 20:00", items: [
+      { boardOn: true },
+      { board: { by: "Floodtide (admin)", title: "[Notice] Opening the Reckoning Board", body: "This is a place to record the prices the law failed to set.\nWe pass no judgment here. We only keep the record.", rec: "Notice" } },
+      { board: { by: "Anonymous", title: "I'm a Hanbit Capital victim", body: "Last night I slept for the first time.", rec: "▲ 4.1K" } },
+      { board: { by: "Anonymous", title: "Stop clapping", body: "This is murder.", rec: "▲ 812 · ▼ 3.3K" } },
+      { voice: "-It has a name now. The Judge." }
+    ] },
+    { t: "7/28 10:15", items: [
+      { msg: "kim", name: "Det. Kim Jun-seo★", lines: ["It's been a while. This is Kim Jun-seo. I took your call when you turned yourself in four years ago.", "Where were you around 11 p.m. on Thursday?", "나:I was at home.", "I'm sure you were. So was your phone."] },
+      { voice: "*Detective, please, help me…" }, { voice: "-Quiet." }
+    ] },
+    { t: "8/3 22:00", items: [
+      { news: { id: "n6", stamp: "Jun 2, 202× (4 years ago)", press: "SBS", title: "Drunk Driver in His 40s Who Killed College Student Gets Suspended Sentence",
+        body: "A man in his 40s who drove while heavily intoxicated and killed a college student crossing the street has been sentenced to two years in prison, suspended for three. The court said it “took into account the defendant's deep remorse and the fact that this was his first offense.”" } },
+      { msg: "han", name: "Han Sang-chul", lines: ["Number two.", "You remember that article. It popped up on your phone four years ago, too.", "Once his suspended sentence ran out, he got his license back. These days he drinks every Friday and drives himself home. I've got the dashcam footage.", "Every week, he walks home across the same crosswalk where that student died."] }
+    ] }
+  ] },
+  { type: "narr", lines: [
+    "-Number two.",
+    "date:Monday, August 6",
+    "Another few hours, gone.",
+    "There was a safe in the room now. The other one bought it.",
+    "-With what money? Oh, right. Mine.",
+    "Torn paper in the trash can. And another sticky note on the floor.",
+    "date:Friday, August 10 · 22:30 · Judgment Day"
+  ] },
+  { type: "judge", j: 2 }
+);
+EN.SCRIPT.push(
+  { type: "room", stage: 3, t: "8/11 07:00", done: "Make Baek In-ho the target", batches: [
+    { t: "8/11 07:30", items: [
+      { news: { id: "n7", press: "Yonhap News", title: "Drunk Driver Who Killed Student Found Dead on That Same Crosswalk… Another “Verdict”",
+        body: "A man in his 40s, Mr. Um (48), was found dead on the night of the 10th on a crosswalk at an intersection in Yeonsu-gu, Incheon. Five years ago, Um hit and killed a college student on the same crosswalk while driving drunk, and received a suspended sentence.\n\nA sheet of paper laid out like a verdict was found near the scene. Police believe the same person is behind last month's case in Juan-dong.",
+        cmts: [["Anonymous", "The same crosswalk…"], ["Anonymous", "The Judge, round two"], ["Anonymous", "Even so, this isn't right"]] } }
+    ] },
+    { t: "8/11 12:00", items: [
+      { news: { id: "n8", press: "KBS", title: "Mother of Student Killed: “I'm Not Glad… It Won't Bring Ha-jun Back”",
+        body: "The mother who lost her son to a drunk driver five years ago said, “They tell me that man is dead, but I'm not glad.” She added, “It won't bring Ha-jun back.”" } },
+      { voice: "*Did you hear that? She's not glad." }, { voice: "-I didn't do it to make her glad. I did it to make him pay." }
+    ] },
+    { t: "8/12 21:00", items: [
+      { board: { by: "Anonymous", title: "I was Ha-jun's friend", body: "Honestly, I don't know. Whether I feel relieved, or scared.", rec: "▲ 2.7K" } },
+      { board: { by: "Anonymous", title: "(This post was removed by the admin)", body: "Floodtide: Without principles, it isn't judgment. Do not post other people's names.", rec: "Removed" } }
+    ] },
+    { t: "8/13 09:40", items: [
+      { msg: "kim", name: "Det. Kim Jun-seo★", lines: ["Friday night, 11:55 p.m. Were you at home this time, too?", "나:I was at home.", "Your phone was home again. You leave your phone behind an awful lot."] }
+    ] },
+    { t: "8/16 18:00", items: [
+      { news: { id: "n9", press: "MBC", title: "Copycat “Judge” Crimes Spread… Police Vow Firm Response",
+        body: "Assaults and threats imitating “The Judge” are being reported across the country. Police said they will respond firmly to copycat crimes." } },
+      { voice: "-Copycats. Not a principle among them." }
+    ] },
+    { t: "8/24 23:00", items: [
+      { msg: "han", name: "Han Sang-chul", lines: ["Number three. This one's personal, too.", "Baek In-ho. Former managing director at Daesung Securities. Architect of the stock manipulation 14 years ago. He set it up with your parents, and he's the reason I did three years alone.", "He still has the computer he used back then. The ledgers are all on it. Every night he turns it on and looks at the old numbers.", "Book a video session with your counselor for 21:00 that night. We need a witness that you were home."] },
+      { msg: "center", name: "Hangyeol Counseling Center", lines: ["Your appointment has been changed to a video session on 8/30 (Thu) at 21:00. Counselor: Jung Yu-jin"] }
+    ] }
+  ] },
+  { type: "narr", lines: [
+    "-Daesung Securities. Where his family's money began.",
+    "-And where Han Sang-chul's three years began.",
+    "date:August 27",
+    "I woke up to find the apology letter torn.",
+    "I don't know who tore it. Maybe me. Maybe him.",
+    "The words on the mirror had changed, too.",
+    "-Fewer seals now. But each one is nastier.",
+    "date:Thursday, August 30 · 19:30 · Judgment Day"
+  ] },
+  { type: "judge", j: 3 }
+);
+
+EN.SCRIPT.push(
+  { type: "room", stage: 4, t: "8/30 22:30", done: "Make Jin Tae-sung the target", batches: [
+    { t: "8/30 22:40", items: [
+      { news: { id: "n10", press: "YTN", title: "[Breaking] Fire in Study of Songdo Officetel… Man in His 60s Dies",
+        body: "Around 10 p.m. on the 30th, a fire broke out on the 12th floor of an officetel in Songdo, Incheon, killing a man in his 60s who lived alone. The fire burned only the study before going out. No other residents were hurt." } }
+    ] },
+    { t: "8/31 09:00", items: [
+      { news: { id: "n11", press: "Yonhap News", title: "Man Who Died Was Ex-Daesung Securities Executive… a “Verdict” on His Door",
+        body: "The man who died in the Songdo officetel has been identified as Mr. Baek (61), a former managing director at Daesung Securities. A sheet of paper laid out like a verdict had been taped to his front door.\n\nFourteen years ago, Baek was suspected of being behind the Daesung Securities market-manipulation case but was never charged. A company employee at the time, Mr. Han, served three years in prison alone." } }
+    ] },
+    { t: "8/31 12:00", items: [
+      { msg: "han", name: "Han Sang-chul", lines: ["Thank you.", "I waited 14 years."] },
+      { voice: "-The first time he'd ever said thank you." }
+    ] },
+    { t: "9/1 10:00", items: [
+      { msg: "kim", name: "Det. Kim Jun-seo★", lines: ["At that hour you were in a video session with Counselor Jung Yu-jin. Fifty minutes, starting at 21:00.", "Perfect. So perfect it's a problem."] },
+      { voice: "*Detective… you're right. It was me…" },
+      { voice: "-My thumb stopped. Right above the send button." }
+    ] },
+    { t: "9/2 20:00", items: [
+      { board: { by: "Floodtide (admin)", title: "[Poll] Who goes on the record next?", body: "Rep. Jin Tae-sung 78%\nSomeone else 22%", rec: "94K votes" } }
+    ] },
+    { t: "9/9 22:00", items: [
+      { msg: "han", name: "Han Sang-chul", lines: ["This is the last one.", "Jin Tae-sung. The man who buried the Daesung Securities case. Took money from a construction company to do it.", "Every Friday night he receives “guests” in the study of his house in Seongbuk-dong. Guests who bring cash.", "You're Jung Min-ho, a manager at Daesung Construction. I've sent the business cards."] }
+    ] }
+  ] },
+  { type: "narr", lines: [
+    "-The last one.",
+    "date:September 12",
+    "Not a single sticky note was left.",
+    "Where the apology letter used to be: clippings about “The Judge.”",
+    "In the closet was a suitcase I'd never seen before. It had a lock on it.",
+    "*…Don't open it.",
+    "His voice was small. So very small.",
+    "date:Friday, September 14 · 19:30 · Judgment Day"
+  ] },
+  { type: "judge", j: 4 }
+);
+EN.SCRIPT.push(
+  { type: "room", stage: 5, t: "9/15 08:00", done: "Stand before the wall", batches: [
+    { t: "9/15 09:40", items: [
+      { news: { id: "n12", press: "KBS", title: "Rep. Jin Tae-sung Found Dead at Home… Bundles of Cash and a “Verdict” in His Study",
+        body: "An aide arriving for work on the morning of the 15th found three-term lawmaker Jin Tae-sung (63) dead in the study of his home in Seongbuk-dong, Seoul. Bundles of 50,000-won notes and a sheet of paper laid out like a verdict were left at the scene. The home's CCTV had been switched off that day." } }
+    ] },
+    { t: "9/15 18:00", items: [
+      { news: { id: "n13", press: "The Hankyoreh", title: "[Exclusive] Daesung Construction, Which Paid Rep. Jin, Was a Daesung Securities Affiliate… 14-Year-Old Exposé Resurfaces",
+        body: "Daesung Construction, long suspected of paying the late Rep. Jin Tae-sung, has been confirmed to be an affiliate of Daesung Securities.\n\nFourteen years ago, an online outlet published an exposé claiming that “a married couple of investors and a company executive were behind the Daesung Securities market manipulation,” but the story was taken down within a week. The investigation at the time concluded that an employee, Mr. Han, had acted alone.\n\nAfter 14 years, the chain linking the late former executive Baek, Rep. Jin, and Daesung Construction has finally come to light.",
+        cmts: [["Anonymous", "The Judge was right"], ["Anonymous", "Did what the law couldn't do in 14 years"], ["Anonymous", "Murder is still murder"]] } }
+    ] },
+    { t: "9/15 21:00", items: [
+      { board: { by: "Floodtide (admin)", title: "[Poll] The Judge is…", body: "A hero 61%\nA monster 39%", rec: "310K votes" } }
+    ] },
+    { t: "9/15 23:30", items: [
+      { narr: [
+        "date:September 15 · 23:30",
+        "Someone knocked on the door.",
+        "It was Detective Kim Jun-seo. The man who took my call when I turned myself in four years ago.",
+        "“May I come in?”",
+        "He looked at the wall for a long time. The clippings, the draft verdict. And he didn't ask a thing.",
+        "“There's no evidence. You were always at home, or in a session.”",
+        "-Detective. The sentences those people got. Were they fair?",
+        "He didn't answer.",
+        "“The reporter who wrote that Daesung Securities story 14 years ago was an old classmate of mine. They pulled it within a week.”",
+        "“…Next time I come, I'll bring a warrant.”",
+        "He didn't take out the handcuffs. The door closed.",
+        "-So he never found his answer either."
+      ] }
+    ] }
+  ] },
+  { type: "final" },
+  { type: "end" }
+);
+
+EN.FINAL = {
+  pre: ["The list on the wall.", "Koo Jae-man — judged", "Um Ki-tae — judged", "Baek In-ho — judged", "Jin Tae-sung — judged", "And at the very bottom, one line in my handwriting.", "One who has not paid in full: the other one", "-The last defendant."],
+  mirror: ["*You know it too. Your name belongs on the bottom line of that list.", "-I know.", "-That's why I put you there. Only one of us has to pay.", "*……", "*Then promise me one thing.", "*Someday, you'll answer for what you owe, too."],
+  verdict: { who: "The other one", crime: "Murder (Oh Kwang-su, Moon Sung-ho, and two others)", law: "4 years in prison", pay: "A sleep he never wakes from" },
+  ending: ["The sentence had been passed.", "The other one never knocked again.", "No more apology letter. No more sticky notes. No more Wednesday sessions at 10 a.m.", "A message came from Han Sang-chul.", "“What's next?”", "I looked in the mirror. There was only one face in it now.", "Behind me, the TV I'd left on was still talking."],
+  last: "The Judge. He is a hero.... and a monster."
+};
+
+EN.FAIL = {
+  lines: ["The word JUDGE never appeared.", "*That's enough.", "His hand grabbed my wrist. No. My own hand grabbed my wrist.", "-……Let go.", "*No. I've practiced this for four years.", "The door closed. From the inside, again."],
+  last: "For all its flaws, the law must still keep order."
+};
+
+/* English UI strings. Key = the Korean text used in the code (a "|tag" suffix only tells apart identical Korean words). */
+Object.assign(UI_EN, {
+  "물때": "WATERMARK", "죗값": "THE PRICE", "물때 2": "Watermark 2",
+  "A씨": "Mr. A", "심판자": "The Judge",
+  /* 서술·판결문 */
+  "건너뛰기": "Skip", "눌러서 계속 ▸": "Tap to continue ▸",
+  "판결문": "VERDICT", "피고": "Defendant", "죄목": "Charge", "법이 내린 형량": "Sentence under law", "죗값|row": "The price",
+  /* 핸드폰 */
+  "메시지": "Messages", "메일": "Mail", "뉴스": "News", "게시판": "Board", "죗값 게시판": "Reckoning Board",
+  "희주 외 메일 {n}통": "{n} emails from Hee-ju",
+  "시간 보내기": "Let time pass", "내려놓기": "Put it down", "‹ 뒤로": "‹ Back",
+  "메시지가 없습니다.": "No messages.", "받은편지함": "Inbox", "메일이 없습니다.": "No mail.", "보낸편지함: 0통": "Sent: 0",
+  "아직 아무것도 없습니다.": "Nothing here yet.",
+  /* 원룸 */
+  "냉장고": "Fridge", "주방": "Kitchen", "상담 일정표": "Schedule", "반성문": "Apology", "벽 · 판결문": "Wall · Verdict",
+  "책장": "Bookshelf", "책상 · 핸드폰": "Desk · Phone", "서랍": "Drawer", "금고": "Safe", "침대 밑": "Under the Bed",
+  "옷장": "Closet", "거울": "Mirror", "공구함": "Toolbox", "쓰레기통": "Trash", "기사 스크랩": "Clippings",
+  "원룸": "Studio", "현장": "Scene", "한상철 제공": "via Han Sang-chul",
+  "반 성 문": "APOLOGY", "원칙": "RULES", "심판자|svg": "JUDGE", "멈춰|svg": "STOP", "심판|svg": "JUDGE",
+  "생수와 반찬통 몇 개.": "Bottled water and a few containers of side dishes.",
+  "싱크대. 그 녀석은 설거지를 미룬 적이 없다.": "The sink. The other one never once left the dishes for later.",
+  "표적의 사진과 동선은 프로필에 정리해 두었다.": "The targets' photos and routines are all in the profile.",
+  "교도소에서 읽은 책들. 철학, 법, 회로이론.": "Books from prison. Philosophy, law, circuit theory.",
+  "금고. 이제 비어 있다.": "The safe. Empty now.",
+  "침대 밑. 먼지뿐이다.": "Under the bed. Nothing but dust.",
+  "옷 몇 벌. 출소할 때 입은 옷.": "A few clothes. The ones I wore the day I got out.",
+  "공구함. 자물쇠가 걸려 있다. 언제부터였을까.": "The toolbox. There's a padlock on it. Since when?",
+  "펜치는 한상철이 가져가 처리했다.": "Han Sang-chul took the pliers and got rid of them.",
+  "비어 있다. 그 녀석은 쓰레기도 매일 버린다.": "Empty. The other one takes out the trash every single day, too.",
+  "표적": "Target", "핸드폰": "Phone", "속마음": "Thoughts", "메뉴": "Menu",
+  "심판 기록": "Judgment Record", "다음을 기다린다": "Waiting for the next one", "아직 아무도": "No one yet", "심판": "Judged",
+  "한상철의 연락을 기다린다. 방을 둘러보거나 핸드폰을 확인하자.": "Waiting to hear from Han Sang-chul. Look around the room or check the phone.",
+  "닫기": "Close", "한상철 메모": "Note from Han Sang-chul", "빼기": "Take out", "빈 칸": "Empty", "가방 {n}/{m}": "Bag {n}/{m}",
+  "나간다": "Head out", "방을 둘러보거나 시간을 보낸다.": "Look around the room, or let time pass.", "결정할 때다.": "Time to decide.",
+  /* 살펴보기 */
+  "폰": "Phone", "핸드폰 보기": "Check the phone", "메시지, 메일, 뉴스": "Messages, mail, news", ", 게시판": ", board", "보기": "Open",
+  "문서": "Paper", "읽음": "Read", "읽기": "Read", "가방에서 빼기": "Take out of bag", "가방에 넣기": "Put in bag",
+  "지금은 필요 없다": "Not needed now", "물건": "Item", "봉인": "Seal", "풀었다.": "Unlocked.",
+  "그 녀석이 걸어 둔 봉인.": "A seal the other one put in place.", "풀어 본다": "Try to open",
+  "검정": "Black", "갈색": "Brown", "빨강": "Red", "주황": "Orange", "노랑": "Yellow", "초록": "Green", "파랑": "Blue", "보라": "Violet", "회색": "Gray", "흰색": "White",
+  "『회로이론』 부록 · 저항 색 코드": "Circuit Theory · Appendix: Resistor Color Code",
+  "여백에 연필 글씨:": "Penciled in the margin:",
+  "다시는 이걸로 사람을 해치지 않는다.": "I will never use this to hurt anyone again.",
+  "저항": "Resistor",
+  "뚜껑에 저항 네 개가 테이프로 붙어 있다. 저마다 색 띠가 하나씩.": "Four resistors are taped to the lid. Each one has a single colored band.",
+  "지우기": "Delete", "확인": "Enter",
+  "이름을 적는다": "Write a name", "답": "Answer",
+  "조각을 이어 붙일 순서대로 누른다.": "Tap the pieces in the order they fit together.",
+  "아직 붙인 조각이 없다.": "No pieces placed yet.", "다시 붙인다": "Start over", "‹ 돌아가기": "‹ Go back",
+  "문장이 이어지지 않는다.": "The sentences don't fit together.",
+  "가방이 가득 찼다. 무언가를 빼야 한다.": "The bag is full. Something has to come out.",
+  /* 타이틀·메뉴 */
+  "202×년 7월 14일 ~ 9월 15일": "July 14 – September 15, 202×",
+  "처음부터": "New Game", "이어하기": "Continue", "저장 슬롯에서 불러오기": "Load from a Save Slot",
+  "「물때」의 4년 뒤 이야기입니다. 1편을 먼저 하면 더 많은 것이 보입니다.": "This story is set four years after the first Watermark. Play that one first and you'll see more.",
+  "진행은 이 브라우저에 자동 저장됩니다. 소리가 납니다.": "Progress saves automatically in this browser. This game has sound.",
+  "위험한 장면은 직접 보여 주지 않고 돌려서 표현합니다.": "Violent scenes are never shown directly, only implied.",
+  "지나간 목소리들. 푸른 글씨는 그 녀석, 붉은 글씨는 나.": "Voices from before. The blue handwriting is the other one. The red is me.",
+  "아직 없다.": "Nothing yet.",
+  "이 심판 준비를 처음부터": "Restart this judgment's preparation", "가방과 봉인이 처음 상태로 돌아간다.": "The bag and the seals go back to how they started.",
+  "다시": "Restart", "저장 슬롯": "Save Slots", "지금 시점을 저장하거나, 저장한 시점으로 돌아간다.": "Save this moment, or go back to a saved one.",
+  "열기": "Open", "타이틀로": "To Title", "진행은 저장되어 있다.": "Your progress is saved.", "이동": "Go",
+  /* 출발·현장·엔딩 */
+  "한 번 나가면 돌아올 수 없다. 가방 속:": "Once you leave, there's no coming back. In the bag:", "가방이 비어 있다.": "The bag is empty.",
+  "더 준비한다": "Keep preparing", "거울 앞": "Before the Mirror", "9월 15일 · 자정": "September 15 · Midnight",
+  "가방: {list}": "Bag: {list}", "비어 있음": "Empty",
+  "-네가 못 낸 답, 내가 내줄게.": "-You couldn't find the answer. I'll give it for you.",
+  "심판한다": "JUDGE", "이 심판의 준비로 돌아가기": "Back to this judgment's preparation",
+  "심판자의 탄생": "The Birth of the Judge", "진엔딩": "TRUE ENDING", "뉴스 · 앵커 음성": "News · Anchor's voice",
+  /* 저장 슬롯 */
+  "{label} 준비 중": "Preparing: {label}", "출소 직후 (핸드폰)": "Just released (phone)", "진행 중": "In progress",
+  "덮어쓰기": "Overwrite", "저장": "Save", "불러오기": "Load", "저장한 때: {at}": "Saved: {at}",
+  "지금 시점을 슬롯에 저장하거나, 저장해 둔 시점으로 돌아간다.": "Save this moment to a slot, or go back to a saved one.",
+  "저장해 둔 시점으로 돌아간다.": "Go back to a saved moment.", "저장은 이 브라우저에만 남는다.": "Saves are kept in this browser only.",
+  "이미 저장된 슬롯이다. 한 번 더 누르면 덮어쓴다.": "This slot is already taken. Tap again to overwrite it.",
+  "슬롯 {k}에 저장했다.": "Saved to slot {k}.", "슬롯 {k}을 불러왔다.": "Loaded slot {k}.",
+  /* 비밀번호 */
+  "임시 비밀번호": "Temporary password", "입장": "Enter",
+  "처음 실행하는 기기에서는 받은 임시 비밀번호가 필요합니다.": "The first time you play on a device, you'll need the temporary password you were given.",
+  "한 번 입력하면 이 브라우저에서는 다시 묻지 않습니다.": "Once you've entered it, this browser won't ask again.",
+  "비밀번호가 맞지 않습니다.": "That password isn't right."
+});
+
 /* 공용 그림 도구: 필름 노이즈, 비네트, 번짐. p는 그림마다 다른 id 접두사 */
 function fxDefs(p) {
   return `<filter id="${p}grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .6 0"/></filter>
@@ -917,23 +1524,23 @@ function roomLeft(st) {
   /* 반성문 */
   const paper = (x, y, w, h, rot) => `<g transform="rotate(${rot} ${x + w / 2} ${y + h / 2})"><rect x="${x + 3}" y="${y + 4}" width="${w}" height="${h}" fill="#000" opacity=".35"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e3dccb"/>`;
   if (st < 3) {
-    s += paper(286, 70, 110, 150, -1) + `<text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">반 성 문</text>`;
+    s += paper(286, 70, 110, 150, -1) + `<text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">${tr("반 성 문")}</text>`;
     for (let i = 0; i < 9; i++) s += `<line x1="298" x2="${384 - (i % 3) * 14}" y1="${106 + i * 11}" y2="${106 + i * 11}" stroke="#7d776a" stroke-width="1.6"/>`;
     s += `<circle cx="341" cy="74" r="3" fill="#b0242b"/></g>`;
   } else if (st < 4) {
-    s += `<g transform="rotate(-2 341 120)"><path d="M286 70 H396 V150 L382 160 L366 148 L350 166 L334 150 L318 168 L300 152 L286 160 Z" fill="#e3dccb"/><text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">반 성 문</text>`;
+    s += `<g transform="rotate(-2 341 120)"><path d="M286 70 H396 V150 L382 160 L366 148 L350 166 L334 150 L318 168 L300 152 L286 160 Z" fill="#e3dccb"/><text x="341" y="92" font-size="12" text-anchor="middle" class="ver-svg" fill="#3a3630">${tr("반 성 문")}</text>`;
     for (let i = 0; i < 4; i++) s += `<line x1="298" x2="372" y1="${106 + i * 11}" y2="${106 + i * 11}" stroke="#7d776a" stroke-width="1.6"/>`;
     s += `</g><path d="M300 205 l14 -6 l6 10 l-12 4z M350 214 l10 -2 l2 8 l-10 1z" fill="#d8d0bd" opacity=".8"/>`;
   } else {
     for (let i = 0; i < 4; i++) {
       const x = 284 + (i % 2) * 60, y = 70 + Math.floor(i / 2) * 78;
-      s += paper(x, y, 54, 66, i * 7 - 9) + `<rect x="${x + 5}" y="${y + 6}" width="44" height="10" fill="#7d1a1f"/><text x="${x + 27}" y="${y + 14}" font-size="7" text-anchor="middle" fill="#f4dcdc" class="ver-svg">심판자</text><rect x="${x + 6}" y="${y + 22}" width="42" height="18" fill="#9a958b"/><line x1="${x + 6}" x2="${x + 46}" y1="${y + 48}" y2="${y + 48}" stroke="#7b776e" stroke-width="1.5"/><line x1="${x + 6}" x2="${x + 40}" y1="${y + 55}" y2="${y + 55}" stroke="#7b776e" stroke-width="1.5"/></g>`;
+      s += paper(x, y, 54, 66, i * 7 - 9) + `<rect x="${x + 5}" y="${y + 6}" width="44" height="10" fill="#7d1a1f"/><text x="${x + 27}" y="${y + 14}" font-size="7" text-anchor="middle" fill="#f4dcdc" class="ver-svg">${tr("심판자|svg")}</text><rect x="${x + 6}" y="${y + 22}" width="42" height="18" fill="#9a958b"/><line x1="${x + 6}" x2="${x + 46}" y1="${y + 48}" y2="${y + 48}" stroke="#7b776e" stroke-width="1.5"/><line x1="${x + 6}" x2="${x + 40}" y1="${y + 55}" y2="${y + 55}" stroke="#7b776e" stroke-width="1.5"/></g>`;
     }
   }
   /* 판결문 게시판 */
   if (st >= 1) {
     s += `<rect x="436" y="228" width="152" height="60" fill="#000" opacity=".35" transform="translate(3 4)"/><rect x="434" y="226" width="152" height="62" fill="#4a3a2a"/><rect x="438" y="230" width="144" height="54" fill="#6b5236"/>
-    <rect x="444" y="234" width="42" height="48" fill="#ece6d6"/><text x="465" y="247" font-size="8" text-anchor="middle" class="ver-svg" fill="#2b2620">원칙</text>`;
+    <rect x="444" y="234" width="42" height="48" fill="#ece6d6"/><text x="465" y="247" font-size="8" text-anchor="middle" class="ver-svg" fill="#2b2620">${tr("원칙")}</text>`;
     for (let i = 0; i < 3; i++) s += `<line x1="449" x2="481" y1="${255 + i * 8}" y2="${255 + i * 8}" stroke="#8a8477" stroke-width="1.2"/>`;
     for (let i = 0; i < Math.min(st, 4); i++) s += `<rect x="${494 + i * 22}" y="${236 + (i % 2) * 6}" width="18" height="24" fill="#c8ccd2"/><rect x="${497 + i * 22}" y="${239 + (i % 2) * 6}" width="12" height="11" fill="#2a2c33"/><line x1="${494 + i * 22}" x2="${512 + i * 22}" y1="${238 + (i % 2) * 6}" y2="${258 + (i % 2) * 6}" stroke="#b0242b" stroke-width="2"/><circle cx="${503 + i * 22}" cy="${236 + (i % 2) * 6}" r="2" fill="#c0393f"/>`;
   }
@@ -986,7 +1593,7 @@ function roomMid(st, glowPhone) {
 
 /* 오른쪽: 옷장, 거울, 공구함. 그리고 포스트잇과 전체 조립 */
 function roomRight(st) {
-  const word = st < 3 ? "멈춰" : "심판", wc = st < 3 ? "#1b1d22" : "#8a1d22";
+  const word = tr(st < 3 ? "멈춰|svg" : "심판|svg"), wc = st < 3 ? "#1b1d22" : "#8a1d22";
   let s = shadow(914, 436, 86, 7, .6) + `<linearGradient id="rwood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3d3229"/><stop offset=".5" stop-color="#4a3c30"/><stop offset="1" stop-color="#2e251e"/></linearGradient>
   <rect x="834" y="76" width="160" height="360" fill="#241c16"/><rect x="838" y="80" width="152" height="352" fill="url(#rwood)"/>
   <rect x="914" y="80" width="3" height="352" fill="#1b1510"/><rect x="838" y="80" width="152" height="10" fill="#2a2119"/>`;
@@ -1010,7 +1617,7 @@ function roomPostits(st) {
   let s = "";
   for (let i = 0; i < [8, 6, 4, 2, 0, 0][st]; i++) {
     const [x, y] = pos[i], a = (i * 37) % 11 - 5;
-    s += `<g transform="translate(${x} ${y}) rotate(${a})"><rect x="2" y="3" width="30" height="28" fill="#000" opacity=".3"/><path d="M0 0 h30 v24 l-4 4 h-26z" fill="#ecdc72"/><path d="M30 24 l-4 4 v-4z" fill="#b9aa4c"/><text x="15" y="19" font-size="13" text-anchor="middle" class="hand-svg" fill="#3a3520">멈춰</text></g>`;
+    s += `<g transform="translate(${x} ${y}) rotate(${a})"><rect x="2" y="3" width="30" height="28" fill="#000" opacity=".3"/><path d="M0 0 h30 v24 l-4 4 h-26z" fill="#ecdc72"/><path d="M30 24 l-4 4 v-4z" fill="#b9aa4c"/><text x="15" y="19" font-size="13" text-anchor="middle" class="hand-svg" fill="#3a3520">${tr("멈춰|svg")}</text></g>`;
   }
   const fallen = [0, 2, 4, 6, 8, 8][st];
   for (let i = 0; i < Math.min(fallen, 6); i++) s += `<path d="M${120 + i * 140} ${556 + (i % 2) * 18} l20 -4 l3 16 l-20 4z" fill="#c9bb5e" opacity=".55"/>`;
@@ -1018,14 +1625,14 @@ function roomPostits(st) {
 }
 function roomSVG(st, glowPhone) {
   const day = st === 0 || st === 2;
-  let s = `<svg class="room" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="원룸"><defs>${fxDefs("r")}`;
+  let s = `<svg class="room" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${tr("원룸")}"><defs>${fxDefs("r")}`;
   s += roomBack(st, day) + roomLeft(st) + roomMid(st, glowPhone) + roomRight(st) + roomPostits(st);
   if (st >= 4) s += `<rect width="1000" height="600" fill="#5a0f12" opacity="${st === 5 ? .16 : .09}" pointer-events="none" style="mix-blend-mode:multiply"/>`;
   s += fxOver("r", 1000, 600, .09);
   for (const sp of SPOTS) {
     if (sp.min && st < sp.min) continue;
     const [x, y, w, h] = sp.box;
-    const label = sp.id === "apology" && st >= 4 ? "기사 스크랩" : sp.label;
+    const label = tr(sp.id === "apology" && st >= 4 ? "기사 스크랩" : sp.label);
     s += `<g class="hot" data-spot="${sp.id}" tabindex="0" role="button" aria-label="${label}">
       <rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/>
       <text class="lab" x="${sp.lab[0]}" y="${sp.lab[1]}" text-anchor="middle">${label}</text></g>`;
@@ -1121,13 +1728,13 @@ function sceneMirror() {
   <g clip-path="url(#sl)" fill="#0a0f17">${sil}</g><g clip-path="url(#sr)" fill="#120608">${sil}</g>`;
   s += `<path d="M500 90 l-8 90 l14 60 l-10 90 l8 90 l-6 90" stroke="#9aa6b2" stroke-width="1.4" fill="none" opacity=".55"/>`;
   s += `<path d="M412 110 l40 0 l-36 140 l-14 0z" fill="#fff" opacity=".06"/>`;
-  s += `<text x="560" y="160" font-size="46" text-anchor="middle" class="hand-svg" fill="#9a1d22" opacity=".9">심판</text><text x="440" y="470" font-size="26" text-anchor="middle" class="hand-svg" fill="#1b1d22" opacity=".55">멈춰</text>`;
+  s += `<text x="560" y="160" font-size="46" text-anchor="middle" class="hand-svg" fill="#9a1d22" opacity=".9">${tr("심판|svg")}</text><text x="440" y="470" font-size="26" text-anchor="middle" class="hand-svg" fill="#1b1d22" opacity=".55">${tr("멈춰|svg")}</text>`;
   s += `<rect x="0" y="520" width="1000" height="80" fill="#0a0a0d"/><rect x="360" y="516" width="280" height="12" fill="#2a2b30"/>`;
   return s;
 }
 function sceneSVG(kind) {
   const body = { office: sceneOffice, road: sceneRoad, studyroom: sceneStudy, mansion: sceneMansion, mirror: sceneMirror }[kind];
-  let s = `<svg class="sc" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="현장"><defs>${fxDefs("s")}`;
+  let s = `<svg class="sc" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${tr("현장")}"><defs>${fxDefs("s")}`;
   s += body ? body() : `</defs><rect width="1000" height="600" fill="#000"/>`;
   return s + fxOver("s", 1000, 600, .12) + "</svg>";
 }
@@ -1175,7 +1782,7 @@ function portraitSVG(kind) {
   for (let y = 0; y < 180; y += 3) s += `<rect y="${y}" width="320" height="1" fill="#000" opacity=".12"/>`;
   s += fxOver(id, 320, 180, .16);
   s += `<path d="M14 30 v-16 h16 M290 14 h16 v16 M306 150 v16 h-16 M30 166 h-16 v-16" stroke="#e7e4dd" stroke-opacity=".5" stroke-width="1.5" fill="none"/>`;
-  s += `<text x="20" y="160" font-size="10" fill="#ffb347" font-family="monospace" opacity=".85">${P.stamp}</text><text x="300" y="160" font-size="10" fill="#8d919b" text-anchor="end">한상철 제공</text>`;
+  s += `<text x="20" y="160" font-size="10" fill="#ffb347" font-family="monospace" opacity=".85">${P.stamp}</text><text x="300" y="160" font-size="10" fill="#8d919b" text-anchor="end">${tr("한상철 제공")}</text>`;
   return s + "</svg>";
 }
 /* 타이틀 배경: 비 내리는 밤의 도시, 위에서 번져 내려오는 물때 */
@@ -1193,22 +1800,22 @@ function titleSVG() {
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const SAVE_KEY = "muldae2_save", CP_KEY = "muldae2_checkpoint";
-const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const DAYS = ["일", "월", "화", "수", "목", "금", "토"], DAYS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MON_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function newState() {
-  return { step: 0, batch: 0, name: "A씨", time: "7/14 09:00", stage: 0,
+  return { lang: LANG, step: 0, batch: 0, name: "A씨", time: "7/14 09:00", stage: 0,
     ph: { threads: {}, torder: [], mails: [], news: [], board: [], boardOn: false },
     voiceLog: [], seen: {}, prep: null, phase: null };
 }
 let S = newState();
 const clone = o => JSON.parse(JSON.stringify(o));
 function store(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
-function fetchSaved(key) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function fetchSaved(key) { try { const v = localStorage.getItem(key); const o = v ? JSON.parse(v) : null; if (o) { fixLang(o); if (o.S) { fixLang(o.S); fixLang(o.cp); } } return o; } catch (e) { return null; } }
 function save() { store(SAVE_KEY, S); }
 
 /* 시간 "7/14 15:20" → 표시 */
 function parseT(t) { const m = /^(\d+)\/(\d+)\s+(\d+):(\d+)$/.exec(t || ""); return m ? new Date(YEAR, +m[1] - 1, +m[2], +m[3], +m[4]) : null; }
-function fmtDate(t) { const d = parseT(t); return d ? `202×. ${d.getMonth() + 1}. ${d.getDate()} (${DAYS[d.getDay()]})` : ""; }
+function fmtDate(t) { const d = parseT(t); if (!d) return ""; return LANG === "en" ? `${DAYS_EN[d.getDay()]}, ${MON_EN[d.getMonth()]} ${d.getDate()}, 202×` : `202×. ${d.getMonth() + 1}. ${d.getDate()} (${DAYS[d.getDay()]})`; }
 function fmtClock(t) { const d = parseT(t); return d ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : ""; }
 function fmtShort(t) { const d = parseT(t); return d ? `${d.getMonth() + 1}/${d.getDate()} ${fmtClock(t)}` : t; }
 
@@ -1243,7 +1850,7 @@ const SFX = {
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("on"), 2600); }
 
 /* 목소리: "*" 첫 번째 인격, "-" 두 번째 인격 */
-function voiceKind(line) { return line[0] === "*" ? "v1" : line[0] === "-" ? "v2" : line[0] === "「" ? "q" : ""; }
+function voiceKind(line) { return line[0] === "*" ? "v1" : line[0] === "-" ? "v2" : line[0] === "「" || line[0] === "“" ? "q" : ""; }
 function voiceText(line) { return line[0] === "*" || line[0] === "-" ? line.slice(1) : line; }
 function voice(line) {
   S.voiceLog.push({ t: S.time, s: line });
@@ -1260,7 +1867,7 @@ function showNarr(lines, done, opts = {}) {
   let el = $("#narr");
   if (!el) { el = document.createElement("div"); el.id = "narr"; document.body.appendChild(el); }
   el.hidden = false; el.className = "";
-  el.innerHTML = `<div class="nl"></div><button class="skip" type="button">건너뛰기</button><div class="more" hidden>눌러서 계속 ▸</div>`;
+  el.innerHTML = `<div class="nl"></div><button class="skip" type="button">${tr("건너뛰기")}</button><div class="more" hidden>${tr("눌러서 계속 ▸")}</div>`;
   const nl = $(".nl", el), more = $(".more", el);
   let i = 0, finished = false;
   const finish = () => {
@@ -1298,10 +1905,10 @@ function showNarr(lines, done, opts = {}) {
   step();
 }
 function verdictHTML(v) {
-  return `<div class="vpaper"><h5>판결문</h5><dl>
-    <dt>피고</dt><dd>${esc(v.who)}</dd><dt>죄목</dt><dd>${esc(v.crime)}</dd>
-    <dt>법이 내린 형량</dt><dd>${esc(v.law)}</dd><dt>죗값</dt><dd class="pay">${esc(v.pay)}</dd></dl>
-    <div class="sign">심판자<span>審</span></div></div>`;
+  return `<div class="vpaper"><h5>${tr("판결문")}</h5><dl>
+    <dt>${tr("피고")}</dt><dd>${esc(v.who)}</dd><dt>${tr("죄목")}</dt><dd>${esc(v.crime)}</dd>
+    <dt>${tr("법이 내린 형량")}</dt><dd>${esc(v.law)}</dd><dt>${tr("죗값|row")}</dt><dd class="pay">${esc(v.pay)}</dd></dl>
+    <div class="sign">${tr("심판자")}<span>審</span></div></div>`;
 }
 /* 엔딩/실패 마지막 화면: 버튼이 있는 정지 화면 */
 function showEndCard(html, buttons) {
@@ -1315,10 +1922,10 @@ function showEndCard(html, buttons) {
 /* ---------- 핸드폰 ---------- */
 const PV = { app: null, id: null, open: false };
 const APP_META = {
-  msg:   { n: "메시지", c: "#34c759", i: `<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-4 4v-4H4z" fill="#fff"/></svg>` },
-  mail:  { n: "메일",   c: "#3d8bff", i: `<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" fill="#fff"/><path d="M3 7l9 6 9-6" stroke="#3d8bff" stroke-width="2" fill="none"/></svg>` },
-  news:  { n: "뉴스",   c: "#e8e8ea", i: `<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="#222"/><rect x="7" y="7" width="7" height="4" fill="#c0393f"/><rect x="7" y="13" width="10" height="2" fill="#aaa"/><rect x="7" y="16" width="8" height="2" fill="#aaa"/></svg>` },
-  board: { n: "게시판", c: "#5a1b1f", i: `<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2" fill="#f1c9cb"/><rect x="8" y="8" width="8" height="2" fill="#5a1b1f"/><rect x="8" y="12" width="8" height="2" fill="#5a1b1f"/></svg>` }
+  msg:   { get n() { return tr("메시지"); }, c: "#34c759", i: `<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-4 4v-4H4z" fill="#fff"/></svg>` },
+  mail:  { get n() { return tr("메일"); }, c: "#3d8bff", i: `<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" fill="#fff"/><path d="M3 7l9 6 9-6" stroke="#3d8bff" stroke-width="2" fill="none"/></svg>` },
+  news:  { get n() { return tr("뉴스"); }, c: "#e8e8ea", i: `<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="#222"/><rect x="7" y="7" width="7" height="4" fill="#c0393f"/><rect x="7" y="13" width="10" height="2" fill="#aaa"/><rect x="7" y="16" width="8" height="2" fill="#aaa"/></svg>` },
+  board: { get n() { return tr("게시판"); }, c: "#5a1b1f", i: `<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2" fill="#f1c9cb"/><rect x="8" y="8" width="8" height="2" fill="#5a1b1f"/><rect x="8" y="12" width="8" height="2" fill="#5a1b1f"/></svg>` }
 };
 
 function unread(app) {
@@ -1348,9 +1955,9 @@ function deliver(batch, after) {
         if (!me) { th.unread++; g.lines.push(L); }
       }
     } else if (it.rename) { S.ph.threads[it.rename.thread].name = it.rename.name; }
-    else if (it.mails) { HEE_MAILS.forEach(m => S.ph.mails.unshift({ ...m, read: false })); group("mail", "mail", "메일").lines.push(`희주 외 메일 ${HEE_MAILS.length}통`); }
+    else if (it.mails) { HEE_MAILS.forEach(m => S.ph.mails.unshift({ ...m, read: false })); group("mail", "mail", tr("메일")).lines.push(tr("희주 외 메일 {n}통", { n: HEE_MAILS.length })); }
     else if (it.news) { S.ph.news.unshift({ ...it.news, t: batch.t, read: false }); group("news:" + it.news.id, "news", it.news.press).lines.push(it.news.title); }
-    else if (it.board) { S.ph.board.unshift({ ...it.board, t: batch.t, read: false }); group("board", "board", "죗값 게시판").lines.push(it.board.title); }
+    else if (it.board) { S.ph.board.unshift({ ...it.board, t: batch.t, read: false }); group("board", "board", tr("죗값 게시판")).lines.push(it.board.title); }
     else if (it.boardOn) { S.ph.boardOn = true; }
     else if (it.voice) voices.push(it.voice);
     else if (it.narr) narrs.push(...it.narr);
@@ -1381,16 +1988,16 @@ function notify(groups) {
 
 /* 핸드폰 화면 그리기. inStep = 핸드폰 단계(프롤로그)인지 */
 function phoneHTML(inStep) {
-  const st = SCRIPT[S.step], judgeLook = S.name === "심판자";
+  const st = SCRIPT[S.step], judgeLook = S.name === "심판자"; // 이름은 언어와 무관한 열쇠
   let body = "";
   if (!PV.app) {
     const apps = ["msg", "mail", "news"].concat(S.ph.boardOn ? ["board"] : []);
     let btns = "";
     if (inStep) {
       const left = st.batches.length - S.batch;
-      btns = left > 0 ? `<button class="timebtn" data-act="time" type="button">시간 보내기</button>`
+      btns = left > 0 ? `<button class="timebtn" data-act="time" type="button">${tr("시간 보내기")}</button>`
                       : `<button class="timebtn red" data-act="done" type="button">${esc(st.done)}</button>`;
-    } else btns = `<button class="timebtn" data-act="close" type="button">내려놓기</button>`;
+    } else btns = `<button class="timebtn" data-act="close" type="button">${tr("내려놓기")}</button>`;
     body = `<div class="ph-home ${judgeLook ? "judge" : ""}">
       <div class="widget"><div class="big">${fmtClock(S.time)}</div><div class="small">${fmtDate(S.time)}</div></div>
       <div class="apps">${apps.map(a => { const m = APP_META[a], u = unread(a); return `<button class="app" data-app="${a}" type="button"><span class="ic" style="background:${m.c}">${m.i}</span>${m.n}${u ? `<span class="badge">${u}</span>` : ""}</button>`; }).join("")}</div>
@@ -1398,7 +2005,7 @@ function phoneHTML(inStep) {
   } else body = phoneApp();
   return `<div class="phone"><div class="ph-status"><span>${fmtClock(S.time)}</span><span>▂▄▆ 5G ▮▮▮▯</span></div><div class="ph-body">${body}</div></div>`;
 }
-function head(title) { return `<div class="ph-head"><button data-act="back" type="button">‹ 뒤로</button><b>${esc(title)}</b></div>`; }
+function head(title) { return `<div class="ph-head"><button data-act="back" type="button">${tr("‹ 뒤로")}</button><b>${esc(title)}</b></div>`; }
 function phoneApp() {
   const p = S.ph, a = PV.app, id = PV.id;
   if (a === "msg") {
@@ -1410,12 +2017,12 @@ function phoneApp() {
     }
     const rows = p.torder.map(k => { const th = p.threads[k], m = th.msgs[th.msgs.length - 1];
       return `<button class="ph-row" data-id="${k}" type="button"><span class="u ${th.unread ? "" : "r"}"></span><span class="t"><b>${esc(th.name)}</b><small>${esc(m.text)}</small></span><span class="d">${fmtShort(m.t)}</span></button>`; }).join("");
-    return head("메시지") + (rows || `<div class="ph-empty">메시지가 없습니다.</div>`);
+    return head(tr("메시지")) + (rows || `<div class="ph-empty">${tr("메시지가 없습니다.")}</div>`);
   }
   if (a === "mail") {
     if (id != null && p.mails[id]) { const m = p.mails[id]; m.read = true; return head(m.subject) + `<div class="mailbody"><small style="color:var(--muted)">${esc(m.from)} · ${esc(m.date)}</small>\n\n${esc(m.body)}</div>`; }
-    return head("받은편지함") + (p.mails.map((m, k) => `<button class="ph-row" data-id="${k}" type="button"><span class="u ${m.read ? "r" : ""}"></span><span class="t"><b>${esc(m.from)} · ${esc(m.subject)}</b><small>${esc(m.body.split("\n")[0])}</small></span><span class="d">${esc(m.date)}</span></button>`).join("") || `<div class="ph-empty">메일이 없습니다.</div>`) +
-      (p.mails.length ? `<div class="ph-empty">보낸편지함: 0통</div>` : "");
+    return head(tr("받은편지함")) + (p.mails.map((m, k) => `<button class="ph-row" data-id="${k}" type="button"><span class="u ${m.read ? "r" : ""}"></span><span class="t"><b>${esc(m.from)} · ${esc(m.subject)}</b><small>${esc(m.body.split("\n")[0])}</small></span><span class="d">${esc(m.date)}</span></button>`).join("") || `<div class="ph-empty">${tr("메일이 없습니다.")}</div>`) +
+      (p.mails.length ? `<div class="ph-empty">${tr("보낸편지함: 0통")}</div>` : "");
   }
   if (a === "news" || a === "board") {
     const list = a === "news" ? p.news : p.board;
@@ -1424,9 +2031,9 @@ function phoneApp() {
       const first = !item.read; item.read = true;
       if (first && item.voice) setTimeout(() => voice(item.voice), 500);
       const cm = (item.cmts || []).map(c => `<div class="cmt"><small>${esc(c[0])}</small>${esc(c[1])}</div>`).join("");
-      return head(a === "news" ? "뉴스" : "죗값 게시판") + `<div class="article"><div class="press">${esc(item.press || item.by)} · ${esc(item.stamp || fmtShort(item.t))}${item.rec ? " · " + esc(item.rec) : ""}</div><h4>${esc(item.title)}</h4><p>${esc(item.body)}</p>${cm ? `<div class="cmts">${cm}</div>` : ""}</div>`;
+      return head(tr(a === "news" ? "뉴스" : "죗값 게시판")) + `<div class="article"><div class="press">${esc(item.press || item.by)} · ${esc(item.stamp || fmtShort(item.t))}${item.rec ? " · " + esc(item.rec) : ""}</div><h4>${esc(item.title)}</h4><p>${esc(item.body)}</p>${cm ? `<div class="cmts">${cm}</div>` : ""}</div>`;
     }
-    return head(a === "news" ? "뉴스" : "죗값 게시판") + (list.map(n => `<button class="ph-row" data-id="${esc(n.id || n.title)}" type="button"><span class="u ${n.read ? "r" : ""}"></span><span class="t"><b>${esc(n.title)}</b><small>${esc(n.press || n.by)}</small></span><span class="d">${esc(n.stamp ? n.stamp.split(" (")[0] : fmtShort(n.t))}</span></button>`).join("") || `<div class="ph-empty">아직 아무것도 없습니다.</div>`);
+    return head(tr(a === "news" ? "뉴스" : "죗값 게시판")) + (list.map(n => `<button class="ph-row" data-id="${esc(n.id || n.title)}" type="button"><span class="u ${n.read ? "r" : ""}"></span><span class="t"><b>${esc(n.title)}</b><small>${esc(n.press || n.by)}</small></span><span class="d">${esc(n.stamp ? n.stamp.split(" (")[0] : fmtShort(n.t))}</span></button>`).join("") || `<div class="ph-empty">${tr("아직 아무것도 없습니다.")}</div>`);
   }
   return "";
 }
@@ -1460,20 +2067,20 @@ function updateTopDot() { const b = $("#tb-phone"); if (!b) return; const u = to
 /* ---------- 원룸 ---------- */
 function baseSpots(st) {
   return {
-    fridge: [{ text: "생수와 반찬통 몇 개." }].concat(st < 4 ? [{ doc: "fridge" }] : []),
-    kitchen: [{ text: "싱크대. 그 녀석은 설거지를 미룬 적이 없다." }],
+    fridge: [{ text: tr("생수와 반찬통 몇 개.") }].concat(st < 4 ? [{ doc: "fridge" }] : []),
+    kitchen: [{ text: tr("싱크대. 그 녀석은 설거지를 미룬 적이 없다.") }],
     calendar: [{ doc: "calendar" }],
     apology: st < 4 ? [{ doc: "apology" }] : [{ doc: "scraps" }],
-    wall: [{ doc: "rules" }].concat(st >= 4 ? [{ doc: "list" }] : [], [{ text: "표적의 사진과 동선은 프로필에 정리해 두었다." }]),
-    bookshelf: [{ text: "교도소에서 읽은 책들. 철학, 법, 회로이론." }, { doc: "textbook" }],
+    wall: [{ doc: "rules" }].concat(st >= 4 ? [{ doc: "list" }] : [], [{ text: tr("표적의 사진과 동선은 프로필에 정리해 두었다.") }]),
+    bookshelf: [{ text: tr("교도소에서 읽은 책들. 철학, 법, 회로이론.") }, { doc: "textbook" }],
     desk: [{ action: "phone" }, { item: "phone" }],
     drawer: [{ doc: "release" }, { doc: "visits" }, { doc: "letter" }, { item: "idcard" }],
-    safe: [{ text: "금고. 이제 비어 있다." }],
-    bed: [{ text: "침대 밑. 먼지뿐이다." }],
-    closet: [{ text: "옷 몇 벌. 출소할 때 입은 옷." }],
+    safe: [{ text: tr("금고. 이제 비어 있다.") }],
+    bed: [{ text: tr("침대 밑. 먼지뿐이다.") }],
+    closet: [{ text: tr("옷 몇 벌. 출소할 때 입은 옷.") }],
     mirror: [{ doc: "mirror" }],
-    toolbox: st <= 1 ? [{ text: "공구함. 자물쇠가 걸려 있다. 언제부터였을까." }] : [{ text: "펜치는 한상철이 가져가 처리했다." }, { item: "hammer" }, { item: "driver" }],
-    trash: [{ text: "비어 있다. 그 녀석은 쓰레기도 매일 버린다." }]
+    toolbox: st <= 1 ? [{ text: tr("공구함. 자물쇠가 걸려 있다. 언제부터였을까.") }] : [{ text: tr("펜치는 한상철이 가져가 처리했다.") }, { item: "hammer" }, { item: "driver" }],
+    trash: [{ text: tr("비어 있다. 그 녀석은 쓰레기도 매일 버린다.") }]
   };
 }
 function curJudge() { const st = SCRIPT[S.step]; return st.type === "judge" ? JUDGE[st.j] : null; }
@@ -1482,42 +2089,42 @@ function spotEntries(id) {
   return (J && J.replace[id]) || base[id] || [];
 }
 function roomStage() { return S.stage; }
-const SPOT_LABEL = id => (SPOTS.find(s => s.id === id) || {}).label || id;
+const SPOT_LABEL = id => tr((SPOTS.find(s => s.id === id) || {}).label || id);
 
 function topHTML() {
   const st = SCRIPT[S.step], J = curJudge(), u = totalUnread();
-  const chap = J ? `${J.label} · ${J.target}` : st.type === "room" ? "원룸" : "";
+  const chap = J ? `${J.label} · ${J.target}` : st.type === "room" ? tr("원룸") : "";
   return `<div class="top"><span class="when"><b>${fmtDate(S.time)}</b> ${fmtClock(S.time)}</span><span class="chap">${esc(chap)}</span>
-    <span class="who ${S.name === "심판자" ? "judge" : ""}">${esc(S.name)}</span>
-    ${J ? `<button class="tb only-narrow" id="tb-prof" type="button">표적</button>` : ""}
-    <button class="tb" id="tb-phone" type="button">핸드폰${u ? `<span class="dot"></span>` : ""}</button>
-    <button class="tb" id="tb-log" type="button">속마음</button>
-    <button class="tb" id="tb-menu" type="button">메뉴</button></div>`;
+    <span class="who ${S.name === "심판자" ? "judge" : ""}">${esc(tr(S.name))}</span>
+    ${J ? `<button class="tb only-narrow" id="tb-prof" type="button">${tr("표적")}</button>` : ""}
+    <button class="tb" id="tb-phone" type="button">${tr("핸드폰")}${u ? `<span class="dot"></span>` : ""}</button>
+    <button class="tb" id="tb-log" type="button">${tr("속마음")}</button>
+    <button class="tb" id="tb-menu" type="button">${tr("메뉴")}</button></div>`;
 }
 function profileHTML() {
   const J = curJudge();
   if (!J) {
     const done = [1, 2, 3, 4].filter(k => S.step > SCRIPT.findIndex(x => x.type === "judge" && x.j === k));
-    return `<div class="eyebrow">심판 기록</div><h2>${done.length ? "다음을 기다린다" : "아직 아무도"}</h2>
-      <div class="log">${done.map(k => `<div><span>${esc(JUDGE[k].target)}</span><span class="done">심판</span></div>`).join("") || `<p class="empty">한상철의 연락을 기다린다. 방을 둘러보거나 핸드폰을 확인하자.</p>`}</div>`;
+    return `<div class="eyebrow">${tr("심판 기록")}</div><h2>${tr(done.length ? "다음을 기다린다" : "아직 아무도")}</h2>
+      <div class="log">${done.map(k => `<div><span>${esc(JUDGE[k].target)}</span><span class="done">${tr("심판")}</span></div>`).join("") || `<p class="empty">${tr("한상철의 연락을 기다린다. 방을 둘러보거나 핸드폰을 확인하자.")}</p>`}</div>`;
   }
   const P = J.profile;
-  return `<div class="sheet-close"><button class="btn" id="prof-x" type="button" style="min-width:0;padding:8px 14px">닫기</button></div>
+  return `<div class="sheet-close"><button class="btn" id="prof-x" type="button" style="min-width:0;padding:8px 14px">${tr("닫기")}</button></div>
     <div class="eyebrow">${esc(P.eyebrow)}</div><h2>${esc(P.name)}</h2>
     <div class="photo">${portraitSVG(J.scene)}</div>
     <dl>${P.rows.map(r => `<div><dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd></div>`).join("")}</dl>
-    <div class="han"><b>한상철 메모</b>${esc(P.han)}</div>`;
+    <div class="han"><b>${tr("한상철 메모")}</b>${esc(P.han)}</div>`;
 }
 function bottomHTML() {
   const st = SCRIPT[S.step], J = curJudge();
   if (J) {
     const bag = S.prep.bag;
     let slots = "";
-    for (let k = 0; k < J.slots; k++) slots += bag[k] ? `<button class="slot full" data-out="${bag[k]}" type="button" title="빼기">${esc(ITEMS[bag[k]].n)}</button>` : `<span class="slot">빈 칸</span>`;
-    return `<div class="bottom"><div class="bag"><span class="bl">가방 ${bag.length}/${J.slots}</span>${slots}</div><button class="btn red go" id="go" type="button">나간다</button></div>`;
+    for (let k = 0; k < J.slots; k++) slots += bag[k] ? `<button class="slot full" data-out="${bag[k]}" type="button" title="${tr("빼기")}">${esc(ITEMS[bag[k]].n)}</button>` : `<span class="slot">${tr("빈 칸")}</span>`;
+    return `<div class="bottom"><div class="bag"><span class="bl">${tr("가방 {n}/{m}", { n: bag.length, m: J.slots })}</span>${slots}</div><button class="btn red go" id="go" type="button">${tr("나간다")}</button></div>`;
   }
   const left = st.batches.length - S.batch;
-  return `<div class="bottom"><span class="hint">${left > 0 ? "방을 둘러보거나 시간을 보낸다." : "결정할 때다."}</span>${left > 0 ? `<button class="btn go" id="tick" type="button">시간 보내기</button>` : `<button class="btn red go" id="done" type="button">${esc(st.done)}</button>`}</div>`;
+  return `<div class="bottom"><span class="hint">${tr(left > 0 ? "방을 둘러보거나 시간을 보낸다." : "결정할 때다.")}</span>${left > 0 ? `<button class="btn go" id="tick" type="button">${tr("시간 보내기")}</button>` : `<button class="btn red go" id="done" type="button">${esc(st.done)}</button>`}</div>`;
 }
 function renderRoom() {
   const app = $("#app");
@@ -1560,30 +2167,30 @@ function expand(entries) {
 function entryHTML(e) {
   const J = curJudge();
   if (e.text) return `<div class="entry txt">${esc(e.text)}</div>`;
-  if (e.action === "phone") return `<div class="entry"><span class="kind">폰</span><span class="et"><b>핸드폰 보기</b><small>메시지, 메일, 뉴스${S.ph.boardOn ? ", 게시판" : ""}</small></span><button class="eb" data-phone type="button">보기</button></div>`;
-  if (e.doc) { const D = DOCS[e.doc]; return `<div class="entry"><span class="kind">문서</span><span class="et"><b>${esc(D.title)}</b>${S.seen[e.doc] ? "<small>읽음</small>" : ""}</span><button class="eb" data-doc="${e.doc}" type="button">읽기</button></div>`; }
+  if (e.action === "phone") return `<div class="entry"><span class="kind">${tr("폰")}</span><span class="et"><b>${tr("핸드폰 보기")}</b><small>${tr("메시지, 메일, 뉴스")}${S.ph.boardOn ? tr(", 게시판") : ""}</small></span><button class="eb" data-phone type="button">${tr("보기")}</button></div>`;
+  if (e.doc) { const D = DOCS[e.doc]; return `<div class="entry"><span class="kind">${tr("문서")}</span><span class="et"><b>${esc(D.title)}</b>${S.seen[e.doc] ? `<small>${tr("읽음")}</small>` : ""}</span><button class="eb" data-doc="${e.doc}" type="button">${tr("읽기")}</button></div>`; }
   if (e.item) {
     const I = ITEMS[e.item], on = inBag(e.item);
-    const btn = J ? `<button class="eb ${on ? "on" : ""}" data-item="${e.item}" type="button">${on ? "가방에서 빼기" : "가방에 넣기"}</button>` : `<span class="eb" style="opacity:.5">지금은 필요 없다</span>`;
-    return `<div class="entry"><span class="kind">물건</span><span class="et"><b>${esc(I.n)}</b><small>${esc(I.d)}</small></span>${btn}</div>`;
+    const btn = J ? `<button class="eb ${on ? "on" : ""}" data-item="${e.item}" type="button">${tr(on ? "가방에서 빼기" : "가방에 넣기")}</button>` : `<span class="eb" style="opacity:.5">${tr("지금은 필요 없다")}</span>`;
+    return `<div class="entry"><span class="kind">${tr("물건")}</span><span class="et"><b>${esc(I.n)}</b><small>${esc(I.d)}</small></span>${btn}</div>`;
   }
   if (e.lock) {
     const L = LOCKS[e.lock], open = S.prep && S.prep.open[e.lock];
-    if (open) return `<div class="entry"><span class="kind">봉인</span><span class="et"><b>${esc(L.title)}</b><small>풀었다.</small></span></div>`;
-    return `<div class="entry locked"><span class="kind">봉인</span><span class="et"><b>${esc(L.title)}</b><small>그 녀석이 걸어 둔 봉인.</small></span><button class="eb on" data-lock="${e.lock}" type="button">풀어 본다</button></div>`;
+    if (open) return `<div class="entry"><span class="kind">${tr("봉인")}</span><span class="et"><b>${esc(L.title)}</b><small>${tr("풀었다.")}</small></span></div>`;
+    return `<div class="entry locked"><span class="kind">${tr("봉인")}</span><span class="et"><b>${esc(L.title)}</b><small>${tr("그 녀석이 걸어 둔 봉인.")}</small></span><button class="eb on" data-lock="${e.lock}" type="button">${tr("풀어 본다")}</button></div>`;
   }
   return "";
 }
 
 const COLORS = [["검정", "#111"], ["갈색", "#7a4a26"], ["빨강", "#c0392b"], ["주황", "#e67e22"], ["노랑", "#f1c40f"], ["초록", "#27ae60"], ["파랑", "#2c6fd1"], ["보라", "#8e44ad"], ["회색", "#8d8d8d"], ["흰색", "#f4f4f4"]];
 function textbookHTML() {
-  return `<div class="doc print">『회로이론』 부록 · 저항 색 코드
-<div class="cc">${COLORS.map((c, k) => `<div><i style="background:${c[1]}"></i>${c[0]} ${k}</div>`).join("")}</div>여백에 연필 글씨:
-<span class="hi">다시는 이걸로 사람을 해치지 않는다.</span></div>`;
+  return `<div class="doc print">${tr("『회로이론』 부록 · 저항 색 코드")}
+<div class="cc">${COLORS.map((c, k) => `<div><i style="background:${c[1]}"></i>${tr(c[0])} ${k}</div>`).join("")}</div>${tr("여백에 연필 글씨:")}
+<span class="hi">${tr("다시는 이걸로 사람을 해치지 않는다.")}</span></div>`;
 }
 function resistorsHTML() {
   const bands = [1, 4, 6, 1];
-  return `<div class="res-row">${bands.map(b => `<svg viewBox="0 0 110 32" aria-label="저항"><line x1="0" y1="16" x2="110" y2="16" stroke="#9aa0a8" stroke-width="2"/><rect x="25" y="6" width="60" height="20" rx="8" fill="#d8c9a3"/><rect x="40" y="6" width="12" height="20" fill="${COLORS[b][1]}"/></svg>`).join("")}</div><p class="desc">뚜껑에 저항 네 개가 테이프로 붙어 있다. 저마다 색 띠가 하나씩.</p>`;
+  return `<div class="res-row">${bands.map(b => `<svg viewBox="0 0 110 32" aria-label="${tr("저항")}"><line x1="0" y1="16" x2="110" y2="16" stroke="#9aa0a8" stroke-width="2"/><rect x="25" y="6" width="60" height="20" rx="8" fill="#d8c9a3"/><rect x="40" y="6" width="12" height="20" fill="${COLORS[b][1]}"/></svg>`).join("")}</div><p class="desc">${tr("뚜껑에 저항 네 개가 테이프로 붙어 있다. 저마다 색 띠가 하나씩.")}</p>`;
 }
 function docHTML(id) {
   const D = DOCS[id];
@@ -1598,15 +2205,15 @@ function lockHTML(id) {
   if (L.kind === "digits") {
     const v = OV.input || "";
     html += `<div class="digits" id="dg">${Array.from({ length: L.len }, (_, k) => `<span>${esc(v[k] || "")}</span>`).join("")}</div>
-      <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-n="${n}" type="button">${n}</button>`).join("")}<button class="wide" data-n="del" type="button">지우기</button><button data-n="0" type="button">0</button><button class="wide" data-n="ok" type="button">확인</button></div>`;
+      <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-n="${n}" type="button">${n}</button>`).join("")}<button class="wide" data-n="del" type="button">${tr("지우기")}</button><button data-n="0" type="button">0</button><button class="wide" data-n="ok" type="button">${tr("확인")}</button></div>`;
 
   } else if (L.kind === "text") {
-    html += `<form class="txtlock" id="tl"><input id="tlin" type="text" autocomplete="off" placeholder="이름을 적는다" aria-label="답"><button class="btn" type="submit" style="min-width:0">확인</button></form>`;
+    html += `<form class="txtlock" id="tl"><input id="tlin" type="text" autocomplete="off" placeholder="${tr("이름을 적는다")}" aria-label="${tr("답")}"><button class="btn" type="submit" style="min-width:0">${tr("확인")}</button></form>`;
   } else if (L.kind === "order") {
     const placed = OV.order || [];
-    html += `<p class="desc">조각을 이어 붙일 순서대로 누른다.</p><div class="strips">${L.shown.map(k => `<button class="strip ${placed.includes(k) ? "used" : ""}" data-piece="${k}" type="button">${esc(L.pieces[k])}</button>`).join("")}</div>
-      <div class="placed">${placed.map(k => `<div class="strip">${esc(L.pieces[k])}</div>`).join("") || `<span class="desc" style="margin:0">아직 붙인 조각이 없다.</span>`}</div>
-      <div class="row"><button class="btn" data-reset type="button" style="min-width:0">다시 붙인다</button></div>`;
+    html += `<p class="desc">${tr("조각을 이어 붙일 순서대로 누른다.")}</p><div class="strips">${L.shown.map(k => `<button class="strip ${placed.includes(k) ? "used" : ""}" data-piece="${k}" type="button">${esc(L.pieces[k])}</button>`).join("")}</div>
+      <div class="placed">${placed.map(k => `<div class="strip">${esc(L.pieces[k])}</div>`).join("") || `<span class="desc" style="margin:0">${tr("아직 붙인 조각이 없다.")}</span>`}</div>
+      <div class="row"><button class="btn" data-reset type="button" style="min-width:0">${tr("다시 붙인다")}</button></div>`;
   }
   return html;
 }
@@ -1616,7 +2223,7 @@ function drawOv() {
   if (OV.view === "spot") { title = SPOT_LABEL(OV.spot); body = `<div class="entries">${expand(spotEntries(OV.spot)).map(entryHTML).join("")}</div>`; }
   else if (OV.view === "doc") { title = DOCS[OV.id].title; body = docHTML(OV.id); back = true; }
   else { title = LOCKS[OV.id].title; body = lockHTML(OV.id); back = true; }
-  o.innerHTML = `<div class="card"><h3>${esc(title)}<button class="x" data-x type="button">닫기</button></h3>${body}${back ? `<div class="backlink"><button class="btn" data-back type="button" style="min-width:0">‹ 돌아가기</button></div>` : ""}</div>`;
+  o.innerHTML = `<div class="card"><h3>${esc(title)}<button class="x" data-x type="button">${tr("닫기")}</button></h3>${body}${back ? `<div class="backlink"><button class="btn" data-back type="button" style="min-width:0">${tr("‹ 돌아가기")}</button></div>` : ""}</div>`;
   bindOv(o);
 }
 
@@ -1636,7 +2243,7 @@ function bindOv(o) {
   o.querySelectorAll("[data-piece]").forEach(b => b.onclick = () => {
     OV.order.push(+b.dataset.piece); SFX.click();
     const L = LOCKS[OV.id];
-    if (OV.order.length === L.pieces.length) { if (OV.order.every((k, n) => k === n)) unlock(OV.id); else { SFX.wrong(); voice(WRONG[Math.floor(Math.random() * WRONG.length)]); toast("문장이 이어지지 않는다."); OV.order = []; drawOv(); } }
+    if (OV.order.length === L.pieces.length) { if (OV.order.every((k, n) => k === n)) unlock(OV.id); else { SFX.wrong(); voice(WRONG[Math.floor(Math.random() * WRONG.length)]); toast(tr("문장이 이어지지 않는다.")); OV.order = []; drawOv(); } }
     else drawOv();
   });
   o.querySelectorAll("[data-reset]").forEach(b => b.onclick = () => { OV.order = []; drawOv(); });
@@ -1653,8 +2260,8 @@ document.addEventListener("keydown", e => {
   if (/^[0-9]$/.test(e.key)) padPress(e.key); else if (e.key === "Backspace") padPress("del"); else if (e.key === "Enter") padPress("ok");
 });
 function tryLock(v) {
-  const L = LOCKS[OV.id], norm = String(v).trim().toLowerCase().replace(/\s+/g, "");
-  if (norm === L.answer) { unlock(OV.id); return; }
+  const L = LOCKS[OV.id], norm = String(v).trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  if ([].concat(L.answer).includes(norm)) { unlock(OV.id); return; }
   SFX.wrong();
   voice((L.special && L.special[norm]) || WRONG[Math.floor(Math.random() * WRONG.length)]);
   OV.input = ""; drawOv();
@@ -1668,7 +2275,7 @@ function unlock(id) {
 function toggleItem(id) {
   const J = curJudge(), bag = S.prep.bag;
   if (bag.includes(id)) bag.splice(bag.indexOf(id), 1);
-  else { if (bag.length >= J.slots) { toast("가방이 가득 찼다. 무언가를 빼야 한다."); return; } bag.push(id); SFX.click(); }
+  else { if (bag.length >= J.slots) { toast(tr("가방이 가득 찼다. 무언가를 빼야 한다.")); return; } bag.push(id); SFX.click(); }
   save(); drawOv();
 }
 function takeOut(id) { const bag = S.prep.bag; bag.splice(bag.indexOf(id), 1); save(); renderRoom(); }
@@ -1689,7 +2296,7 @@ function enterStep() {
   if (st.name) S.name = st.name;
   if (st.stage != null) S.stage = st.stage;
   if (st.type === "judge") {
-    const J = JUDGE[st.j]; S.time = J.t; S.stage = J.stage; S.name = "심판자";
+    const J = JUDGE[st.j]; S.time = J.t; S.stage = J.stage; S.name = "심판자"; // 표시는 tr()로
     S.prep = { j: st.j, bag: [], open: {} };
     store(CP_KEY, S);
   }
@@ -1709,9 +2316,10 @@ function stepDone() { PV.open = false; const ov = $(".phone-ov"); if (ov) ov.rem
 
 function renderTitle() {
   const has = fetchSaved(SAVE_KEY);
-  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div><h1>물때<span>2</span></h1><p class="sub">죗값</p><p class="period">202×년 7월 14일 ~ 9월 15일</p>
-    <div class="stack"><button class="btn red" id="new" type="button">처음부터</button><button class="btn" id="cont" type="button" ${has && has.step > 0 ? "" : "disabled"}>이어하기</button><button class="btn" id="slots" type="button" ${anySlot() ? "" : "disabled"}>저장 슬롯에서 불러오기</button></div>
-    <p class="tip">「물때」의 4년 뒤 이야기입니다. 1편을 먼저 하면 더 많은 것이 보입니다.<br>진행은 이 브라우저에 자동 저장됩니다. 소리가 납니다.<br>위험한 장면은 직접 보여 주지 않고 돌려서 표현합니다.</p></div>`;
+  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div>${langSwitchHTML()}<h1>${tr("물때")}<span>2</span></h1><p class="sub">${tr("죗값")}</p><p class="period">${tr("202×년 7월 14일 ~ 9월 15일")}</p>
+    <div class="stack"><button class="btn red" id="new" type="button">${tr("처음부터")}</button><button class="btn" id="cont" type="button" ${has && has.step > 0 ? "" : "disabled"}>${tr("이어하기")}</button><button class="btn" id="slots" type="button" ${anySlot() ? "" : "disabled"}>${tr("저장 슬롯에서 불러오기")}</button></div>
+    <p class="tip">${tr("「물때」의 4년 뒤 이야기입니다. 1편을 먼저 하면 더 많은 것이 보입니다.")}<br>${tr("진행은 이 브라우저에 자동 저장됩니다. 소리가 납니다.")}<br>${tr("위험한 장면은 직접 보여 주지 않고 돌려서 표현합니다.")}</p></div>`;
+  bindLangSwitch($("#app"), renderTitle);
   $("#new").onclick = () => { audio(); S = newState(); next(); };
   $("#slots").onclick = () => { audio(); openSlots(false); };
   $("#cont").onclick = () => { audio(); const sv = fetchSaved(SAVE_KEY); if (!sv) return; S = sv; resume(); };
@@ -1725,18 +2333,20 @@ function resume() {
 }
 function openLog() {
   const o = ovEl(); OV = { view: "log" };
-  o.innerHTML = `<div class="card"><h3>속마음<button class="x" data-x type="button">닫기</button></h3><p class="desc">지나간 목소리들. 푸른 글씨는 그 녀석, 붉은 글씨는 나.</p><div class="vlog">${S.voiceLog.slice().reverse().map(v => `<div class="${voiceKind(v.s)}"><small>${fmtShort(v.t)}</small>${esc(voiceText(v.s))}</div>`).join("") || `<p class="desc">아직 없다.</p>`}</div></div>`;
+  o.innerHTML = `<div class="card"><h3>${tr("속마음")}<button class="x" data-x type="button">${tr("닫기")}</button></h3><p class="desc">${tr("지나간 목소리들. 푸른 글씨는 그 녀석, 붉은 글씨는 나.")}</p><div class="vlog">${S.voiceLog.slice().reverse().map(v => `<div class="${voiceKind(v.s)}"><small>${fmtShort(v.t)}</small>${esc(voiceText(v.s))}</div>`).join("") || `<p class="desc">${tr("아직 없다.")}</p>`}</div></div>`;
   o.querySelector("[data-x]").onclick = () => { OV = null; o.remove(); };
 }
 function openMenu() {
   const o = ovEl(); OV = { view: "menu" };
   const J = curJudge();
-  o.innerHTML = `<div class="card"><h3>메뉴<button class="x" data-x type="button">닫기</button></h3><div class="entries">
-    ${J ? `<div class="entry"><span class="et"><b>이 심판 준비를 처음부터</b><small>가방과 봉인이 처음 상태로 돌아간다.</small></span><button class="eb" id="m-cp" type="button">다시</button></div>` : ""}
-    <div class="entry"><span class="et"><b>저장 슬롯</b><small>지금 시점을 저장하거나, 저장한 시점으로 돌아간다.</small></span><button class="eb" id="m-slots" type="button">열기</button></div>
-    <div class="entry"><span class="et"><b>타이틀로</b><small>진행은 저장되어 있다.</small></span><button class="eb" id="m-title" type="button">이동</button></div></div></div>`;
+  o.innerHTML = `<div class="card"><h3>${tr("메뉴")}<button class="x" data-x type="button">${tr("닫기")}</button></h3><div class="entries">
+    ${J ? `<div class="entry"><span class="et"><b>${tr("이 심판 준비를 처음부터")}</b><small>${tr("가방과 봉인이 처음 상태로 돌아간다.")}</small></span><button class="eb" id="m-cp" type="button">${tr("다시")}</button></div>` : ""}
+    <div class="entry"><span class="et"><b>${tr("저장 슬롯")}</b><small>${tr("지금 시점을 저장하거나, 저장한 시점으로 돌아간다.")}</small></span><button class="eb" id="m-slots" type="button">${tr("열기")}</button></div>
+    <div class="entry"><span class="et"><b>${tr("타이틀로")}</b><small>${tr("진행은 저장되어 있다.")}</small></span><button class="eb" id="m-title" type="button">${tr("이동")}</button></div>
+    <div class="entry"><span class="et"><b>언어 · Language</b><small>${LANG === "en" ? "Switch to Korean. Your progress carries over." : "영어로 바꾼다. 진행은 그대로 이어진다."}</small></span><button class="eb" id="m-lang" type="button">${LANG === "en" ? "한국어" : "English"}</button></div></div></div>`;
   o.querySelector("[data-x]").onclick = () => { OV = null; o.remove(); };
   $("#m-slots", o).onclick = () => openSlots(true);
+  $("#m-lang", o).onclick = () => { setLang(LANG === "en" ? "ko" : "en"); try { const cp = fetchSaved(CP_KEY); if (cp) store(CP_KEY, cp); } catch (e) {} PV.app = null; PV.id = null; render(); openMenu(); };
   const cp = $("#m-cp", o); if (cp) cp.onclick = () => { OV = null; o.remove(); restoreCheckpoint(); };
   $("#m-title", o).onclick = () => { OV = null; o.remove(); save(); S.step = 0; renderTitle(); S = fetchSaved(SAVE_KEY) || newState(); };
 }
@@ -1746,10 +2356,10 @@ function restoreCheckpoint() { const cp = fetchSaved(CP_KEY); if (!cp) return; S
 function confirmGo() {
   const J = curJudge(), bag = S.prep.bag;
   const o = ovEl(); OV = { view: "go" };
-  o.innerHTML = `<div class="card"><h3>나간다<button class="x" data-x type="button">닫기</button></h3>
-    <p class="desc">한 번 나가면 돌아올 수 없다. 가방 속:</p>
-    <div class="entries">${bag.length ? bag.map(id => `<div class="entry"><span class="kind">물건</span><span class="et"><b>${esc(ITEMS[id].n)}</b></span></div>`).join("") : `<div class="entry txt">가방이 비어 있다.</div>`}</div>
-    <div class="row"><button class="btn red" id="go-yes" type="button">나간다</button><button class="btn" id="go-no" type="button">더 준비한다</button></div></div>`;
+  o.innerHTML = `<div class="card"><h3>${tr("나간다")}<button class="x" data-x type="button">${tr("닫기")}</button></h3>
+    <p class="desc">${tr("한 번 나가면 돌아올 수 없다. 가방 속:")}</p>
+    <div class="entries">${bag.length ? bag.map(id => `<div class="entry"><span class="kind">${tr("물건")}</span><span class="et"><b>${esc(ITEMS[id].n)}</b></span></div>`).join("") : `<div class="entry txt">${tr("가방이 비어 있다.")}</div>`}</div>
+    <div class="row"><button class="btn red" id="go-yes" type="button">${tr("나간다")}</button><button class="btn" id="go-no" type="button">${tr("더 준비한다")}</button></div></div>`;
   o.querySelector("[data-x]").onclick = closeOv;
   $("#go-no", o).onclick = closeOv;
   $("#go-yes", o).onclick = () => {
@@ -1767,17 +2377,17 @@ function renderScene() {
   const kind = isFinal ? "mirror" : J.scene;
   $("#voice").innerHTML = "";
   $("#app").innerHTML = `<div class="scene" id="sc">${sceneSVG(kind)}
-    <div class="cap"><b>${esc(isFinal ? "거울 앞" : J.sceneTitle)}</b>${esc(isFinal ? "9월 15일 · 자정" : J.sceneCap)}</div>
-    ${isFinal ? "" : `<div class="bagline">가방: ${S.prep.bag.map(id => esc(ITEMS[id].n)).join(" · ") || "비어 있음"}</div>`}</div>`;
+    <div class="cap"><b>${esc(isFinal ? tr("거울 앞") : J.sceneTitle)}</b>${esc(isFinal ? tr("9월 15일 · 자정") : J.sceneCap)}</div>
+    ${isFinal ? "" : `<div class="bagline">${tr("가방: {list}", { list: S.prep.bag.map(id => esc(ITEMS[id].n)).join(" · ") || tr("비어 있음") })}</div>`}</div>`;
   if (isFinal) return;
   if (S.prep.result !== "ok") { setTimeout(() => failJudge(S.prep.result), 2600); return; }
-  setTimeout(() => placeJudgeButton(INTERFERE[SCRIPT[S.step].j] || [], () => judgeSuccess(J), st.j === 4 ? "-네가 못 낸 답, 내가 내줄게." : null), 1200);
+  setTimeout(() => placeJudgeButton(INTERFERE[SCRIPT[S.step].j] || [], () => judgeSuccess(J), st.j === 4 ? tr("-네가 못 낸 답, 내가 내줄게.") : null), 1200);
 }
 /* 첫 번째 인격이 끼어든다: 버튼이 흔들리거나 사라졌다 다른 곳에 나타난다 */
 function placeJudgeButton(lines, onPress, finalLine) {
   const sc = $("#sc"); if (!sc) return;
   const b = document.createElement("button");
-  b.type = "button"; b.className = "judge-btn"; b.textContent = "심판한다";
+  b.type = "button"; b.className = "judge-btn"; b.textContent = tr("심판한다");
   sc.appendChild(b);
   let n = 0;
   const quake = ms => { sc.classList.remove("quake"); void sc.offsetWidth; sc.classList.add("quake"); clearTimeout(sc.qh); sc.qh = setTimeout(() => sc.classList.remove("quake"), ms); try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
@@ -1800,8 +2410,8 @@ function judgeSuccess(J) {
 function failJudge(kind) {
   showNarr([FAIL_REASON[kind]].concat(FAIL.lines), () => {
     showEndCard(`<div class="lastline red">${esc(FAIL.last)}</div>`, [
-      { label: "이 심판의 준비로 돌아가기", red: true, fn: restoreCheckpoint },
-      { label: "타이틀로", fn: () => { const cp = fetchSaved(CP_KEY); if (cp) store(SAVE_KEY, cp); S = newState(); renderTitle(); } }
+      { label: tr("이 심판의 준비로 돌아가기"), red: true, fn: restoreCheckpoint },
+      { label: tr("타이틀로"), fn: () => { const cp = fetchSaved(CP_KEY); if (cp) store(SAVE_KEY, cp); S = newState(); renderTitle(); } }
     ]);
   }, { keep: true });
 }
@@ -1811,7 +2421,7 @@ const SLOT_KEY = k => "muldae2_slot" + k;
 function anySlot() { return [1, 2, 3].some(k => fetchSaved(SLOT_KEY(k))); }
 function slotLabel(sv) {
   const st = SCRIPT[sv.S.step] || {};
-  const where = st.type === "judge" ? JUDGE[st.j].label + " 준비 중" : st.type === "phone" ? "출소 직후 (핸드폰)" : st.type === "room" ? "원룸" : "진행 중";
+  const where = st.type === "judge" ? tr("{label} 준비 중", { label: JUDGE[st.j].label }) : tr(st.type === "phone" ? "출소 직후 (핸드폰)" : st.type === "room" ? "원룸" : "진행 중");
   return `${fmtDate(sv.S.time)} ${fmtClock(sv.S.time)} · ${where}`;
 }
 function openSlots(canSave) {
@@ -1819,26 +2429,26 @@ function openSlots(canSave) {
   const draw = () => {
     const rows = [1, 2, 3].map(k => {
       const sv = fetchSaved(SLOT_KEY(k));
-      const saveBtn = canSave ? `<button class="eb ${OV.confirm === k ? "on" : ""}" data-save="${k}" type="button">${OV.confirm === k ? "덮어쓰기" : "저장"}</button>` : "";
-      const loadBtn = sv ? `<button class="eb" data-load="${k}" type="button">불러오기</button>` : "";
-      return `<div class="entry"><span class="kind">${k}</span><span class="et"><b>${sv ? esc(slotLabel(sv)) : "비어 있음"}</b>${sv ? `<small>저장한 때: ${esc(sv.at)}</small>` : ""}</span>${saveBtn}${loadBtn}</div>`;
+      const saveBtn = canSave ? `<button class="eb ${OV.confirm === k ? "on" : ""}" data-save="${k}" type="button">${tr(OV.confirm === k ? "덮어쓰기" : "저장")}</button>` : "";
+      const loadBtn = sv ? `<button class="eb" data-load="${k}" type="button">${tr("불러오기")}</button>` : "";
+      return `<div class="entry"><span class="kind">${k}</span><span class="et"><b>${sv ? esc(slotLabel(sv)) : tr("비어 있음")}</b>${sv ? `<small>${tr("저장한 때: {at}", { at: esc(sv.at) })}</small>` : ""}</span>${saveBtn}${loadBtn}</div>`;
     }).join("");
-    o.innerHTML = `<div class="card"><h3>저장 슬롯<button class="x" data-x type="button">닫기</button></h3>
-      <p class="desc">${canSave ? "지금 시점을 슬롯에 저장하거나, 저장해 둔 시점으로 돌아간다." : "저장해 둔 시점으로 돌아간다."} 저장은 이 브라우저에만 남는다.</p>
-      <div class="entries">${rows}</div>${OV.confirm ? `<p class="desc" style="margin-top:12px">이미 저장된 슬롯이다. 한 번 더 누르면 덮어쓴다.</p>` : ""}</div>`;
+    o.innerHTML = `<div class="card"><h3>${tr("저장 슬롯")}<button class="x" data-x type="button">${tr("닫기")}</button></h3>
+      <p class="desc">${tr(canSave ? "지금 시점을 슬롯에 저장하거나, 저장해 둔 시점으로 돌아간다." : "저장해 둔 시점으로 돌아간다.")} ${tr("저장은 이 브라우저에만 남는다.")}</p>
+      <div class="entries">${rows}</div>${OV.confirm ? `<p class="desc" style="margin-top:12px">${tr("이미 저장된 슬롯이다. 한 번 더 누르면 덮어쓴다.")}</p>` : ""}</div>`;
     o.querySelector("[data-x]").onclick = () => { OV = null; o.remove(); };
     o.querySelectorAll("[data-save]").forEach(b => b.onclick = () => {
       const k = +b.dataset.save;
       if (fetchSaved(SLOT_KEY(k)) && OV.confirm !== k) { OV.confirm = k; draw(); return; }
       const now = new Date();
       store(SLOT_KEY(k), { S: clone(S), cp: fetchSaved(CP_KEY), at: `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}` });
-      OV.confirm = null; SFX.open(); toast(`슬롯 ${k}에 저장했다.`); draw();
+      OV.confirm = null; SFX.open(); toast(tr("슬롯 {k}에 저장했다.", { k })); draw();
     });
     o.querySelectorAll("[data-load]").forEach(b => b.onclick = () => {
       const sv = fetchSaved(SLOT_KEY(+b.dataset.load)); if (!sv) return;
       OV = null; o.remove(); PV.open = false; const pov = $(".phone-ov"); if (pov) pov.remove();
       S = clone(sv.S); S.phase = null; if (sv.cp) store(CP_KEY, sv.cp);
-      save(); toast(`슬롯 ${b.dataset.load}을 불러왔다.`); resume();
+      save(); toast(tr("슬롯 {k}을 불러왔다.", { k: b.dataset.load })); resume();
     });
   };
   draw();
@@ -1872,18 +2482,71 @@ function sha256(str) {
 function gate(start) {
   let ok = null; try { ok = localStorage.getItem(GATE_KEY); } catch (e) {}
   if (ok === GATE_HASH) return start();
-  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div><h1>물때<span>2</span></h1><p class="sub">죗값</p>
-    <form class="stack" id="gate" autocomplete="off"><div class="txtlock" style="width:min(320px,100%)"><input id="gate-pw" type="password" placeholder="임시 비밀번호" aria-label="임시 비밀번호" autocapitalize="off" spellcheck="false"></div><button class="btn red" type="submit">입장</button></form>
-    <p class="tip" id="gate-msg">처음 실행하는 기기에서는 받은 임시 비밀번호가 필요합니다.<br>한 번 입력하면 이 브라우저에서는 다시 묻지 않습니다.</p></div>`;
+  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div>${langSwitchHTML()}<h1>${tr("물때")}<span>2</span></h1><p class="sub">${tr("죗값")}</p>
+    <form class="stack" id="gate" autocomplete="off"><div class="txtlock" style="width:min(320px,100%)"><input id="gate-pw" type="password" placeholder="${tr("임시 비밀번호")}" aria-label="${tr("임시 비밀번호")}" autocapitalize="off" spellcheck="false"></div><button class="btn red" type="submit">${tr("입장")}</button></form>
+    <p class="tip" id="gate-msg">${tr("처음 실행하는 기기에서는 받은 임시 비밀번호가 필요합니다.")}<br>${tr("한 번 입력하면 이 브라우저에서는 다시 묻지 않습니다.")}</p></div>`;
+  bindLangSwitch($("#app"), () => gate(start));
   const inp = $("#gate-pw"); inp.focus();
   $("#gate").onsubmit = e => {
     e.preventDefault();
     if (sha256(GATE_SALT + inp.value.trim().toLowerCase()) === GATE_HASH) {
       try { localStorage.setItem(GATE_KEY, GATE_HASH); } catch (e) {}
       SFX.open(); start();
-    } else { SFX.wrong(); inp.value = ""; $("#gate-msg").textContent = "비밀번호가 맞지 않습니다."; }
+    } else { SFX.wrong(); inp.value = ""; $("#gate-msg").textContent = tr("비밀번호가 맞지 않습니다."); }
   };
 }
+
+/* ---------- 언어 전환: 한국어 데이터 ↔ EN 데이터를 제자리에서 바꿔 끼운다 ---------- */
+const DATA_REF = { ITEMS, DOCS, LOCKS, WRONG, JUDGE, INTERFERE, FAIL_REASON, HEE_MAILS, SCRIPT, FINAL, FAIL };
+const KO = {};
+for (const k in DATA_REF) KO[k] = Array.isArray(DATA_REF[k]) ? [...DATA_REF[k]] : { ...DATA_REF[k] };
+function useData(src) {
+  for (const k in DATA_REF) {
+    const t = DATA_REF[k], s = src[k];
+    if (Array.isArray(t)) { t.length = 0; t.push(...s); }
+    else { Object.keys(t).forEach(x => delete t[x]); Object.assign(t, s); }
+  }
+}
+/* 같은 모양의 KO/EN 데이터를 나란히 훑어 문장 사전을 만든다 → 저장된 진행(핸드폰 기록, 속마음)을 다른 언어로 옮길 때 쓴다 */
+const DICT = { en: new Map(), ko: new Map() };
+function pair(a, b) { if (a === b) return; DICT.en.set(a, b); DICT.ko.set(b, a); }
+(function walk(a, b) {
+  if (typeof a === "string" && typeof b === "string") { pair(a, b); if (a.startsWith("나:") && b.startsWith("나:")) pair(a.slice(2), b.slice(2)); return; }
+  if (a && b && typeof a === "object" && typeof b === "object") for (const k of Object.keys(a)) if (k in b) walk(a[k], b[k]);
+})(KO, EN);
+pair("*그건 내 대답이야.", "*That's my answer.");
+pair("*그 녀석은… 나야.", "*The other one… is me.");
+pair("*그건 뉴스가 부르는 이름이야. 내 이름이기도 하고.", "*That's what the news calls me. It's my name too.");
+function translateState(st, to) {
+  const d = DICT[to];
+  const walk = o => { for (const k in o) { const v = o[k]; if (typeof v === "string") { if (d.has(v)) o[k] = d.get(v); } else if (v && typeof v === "object") walk(v); } };
+  const name = st.name; walk(st); st.name = name; // 이름표는 언어와 상관없는 열쇠("A씨"/"심판자")로 둔다
+}
+function fixLang(st) {
+  if (!st || typeof st !== "object" || !st.ph) return st;
+  if ((st.lang || "ko") !== LANG) translateState(st, LANG);
+  st.lang = LANG; return st;
+}
+function applyLangChrome() {
+  const h = document.documentElement; h.lang = LANG; h.classList.toggle("en", LANG === "en");
+  document.title = tr("물때 2");
+}
+function setLang(l) {
+  if (l === LANG) return;
+  LANG = l; try { localStorage.setItem(LANG_KEY, l); } catch (e) {}
+  useData(l === "en" ? EN : KO); applyLangChrome();
+  fixLang(S); save();
+  const t = $("#toast"); if (t) t.classList.remove("on");
+}
+/* 타이틀·비밀번호 화면 오른쪽 위 언어 단추 */
+function langSwitchHTML() {
+  return `<div class="langsw" role="group" aria-label="Language"><button type="button" data-lang="ko" class="${LANG === "ko" ? "on" : ""}">한국어</button><button type="button" data-lang="en" class="${LANG === "en" ? "on" : ""}">English</button></div>`;
+}
+function bindLangSwitch(root, redraw) {
+  root.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => { SFX.click(); setLang(b.dataset.lang); redraw(); });
+}
+if (LANG === "en") useData(EN);
+applyLangChrome();
 
 /* ---------- 마지막 판결과 엔딩 ---------- */
 function runFinal() {
@@ -1899,9 +2562,9 @@ function runFinal() {
 }
 function runEnd() {
   try { localStorage.removeItem(CP_KEY); } catch (e) {}
-  showNarr(FINAL.ending.concat([{ title: "심판자의 탄생", small: "진엔딩" }]), () => {
-    showEndCard(`<div class="ln date" style="text-align:center">뉴스 · 앵커 음성</div><div class="lastline red">「${esc(FINAL.last)}」</div>`, [
-      { label: "타이틀로", fn: () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} S = newState(); renderTitle(); } }
+  showNarr(FINAL.ending.concat([{ title: tr("심판자의 탄생"), small: tr("진엔딩") }]), () => {
+    showEndCard(`<div class="ln date" style="text-align:center">${tr("뉴스 · 앵커 음성")}</div><div class="lastline red">${LANG === "en" ? "“" + esc(FINAL.last) + "”" : "「" + esc(FINAL.last) + "」"}</div>`, [
+      { label: tr("타이틀로"), fn: () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} S = newState(); renderTitle(); } }
     ]);
   }, { keep: true });
 }

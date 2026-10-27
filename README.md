@@ -1,9 +1,11 @@
 # 물때 2 · 죗값
 
 「물때」의 4년 뒤 이야기를 다룬 브라우저 추리 게임입니다.
-A browser mystery game set four years after "물때".
+A browser mystery game set four years after "물때" (Watermark). Playable in Korean and English.
 
 **플레이하기 / Play:** https://dp3789-alt.github.io/watermystery2/
+
+**English version:** https://dp3789-alt.github.io/watermystery2/?lang=en (or switch with the 한국어 | English button on the title screen)
 
 ## 저작권 / Copyright
 
