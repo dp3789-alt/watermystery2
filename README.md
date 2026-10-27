@@ -1,4 +1,4 @@
-# 물때 2 · 죗값
+# 침묵의 자오선: 자정의 메아리 · Meridian of Silence: Midnight Echoes
 
 「물때」의 4년 뒤 이야기를 다룬 브라우저 추리 게임입니다.
 A browser mystery game set four years after "물때" (Watermark). Playable in Korean and English.

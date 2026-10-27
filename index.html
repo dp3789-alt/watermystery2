@@ -1,5 +1,5 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0b0c0f">
-<title>물때 2</title>
+<title>침묵의 자오선: 자정의 메아리</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,7 +37,7 @@ input { font: inherit; }
 .title-screen > :not(.title-bg) { position: relative; }
 .title-bg { position: absolute; inset: 0; opacity: .55; pointer-events: none; }
 .title-bg svg { width: 100%; height: 100%; display: block; }
-.title-screen h1 { font-family: var(--f-verdict); font-weight: 800; font-size: clamp(52px, 14vw, 96px); letter-spacing: .18em; margin: 0; line-height: 1.1; padding-left: .18em; }
+.title-screen h1 { font-family: var(--f-verdict); font-weight: 800; font-size: clamp(36px, 10vw, 72px); letter-spacing: .1em; margin: 0; line-height: 1.2; padding-left: .1em; word-break: keep-all; }
 .title-screen h1 span { color: var(--blood); }
 .title-screen .sub { font-family: var(--f-verdict); font-size: 19px; letter-spacing: .5em; color: var(--muted); margin: 0 0 4px; padding-left: .5em; }
 .title-screen .period { font-size: 13px; color: var(--muted); margin-bottom: 30px; }
@@ -303,7 +303,7 @@ input { font: inherit; }
 .langsw button { font: 500 13px var(--f-ui); color: var(--muted); background: none; border: 0; padding: 7px 13px; cursor: pointer; }
 .langsw button.on { color: var(--fg); background: #2a2d35; }
 html.en { --f-ui: "IBM Plex Sans", "IBM Plex Sans KR", system-ui, sans-serif; --f-verdict: "EB Garamond", "Nanum Myeongjo", Georgia, serif; --f-hand: "Caveat", "Nanum Pen Script", cursive; }
-html.en .title-screen h1 { font-size: clamp(38px, 10.5vw, 84px); letter-spacing: .1em; padding-left: .1em; }
+html.en .title-screen h1 { font-size: clamp(30px, 8vw, 64px); letter-spacing: .04em; padding-left: .04em; }
 html.en .title-screen .sub { letter-spacing: .32em; padding-left: .32em; }
 html.en .doc.hand { font-size: 22px; }
 html.en .doc .hi { font-size: 21px; }
@@ -1343,7 +1343,7 @@ EN.FAIL = {
 
 /* English UI strings. Key = the Korean text used in the code (a "|tag" suffix only tells apart identical Korean words). */
 Object.assign(UI_EN, {
-  "물때": "WATERMARK", "죗값": "THE PRICE", "물때 2": "Watermark 2",
+  "침묵의 자오선": "Meridian of Silence", "자정의 메아리": "Midnight Echoes", "침묵의 자오선: 자정의 메아리": "Meridian of Silence: Midnight Echoes",
   "A씨": "Mr. A", "심판자": "The Judge",
   /* 서술·판결문 */
   "건너뛰기": "Skip", "눌러서 계속 ▸": "Tap to continue ▸",
@@ -2323,7 +2323,7 @@ function stepDone() { PV.open = false; const ov = $(".phone-ov"); if (ov) ov.rem
 
 function renderTitle() {
   const has = fetchSaved(SAVE_KEY);
-  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div>${langSwitchHTML()}<h1>${tr("물때")}<span>2</span></h1><p class="sub">${tr("죗값")}</p><p class="period">${tr("202×년 7월 14일 ~ 9월 15일")}</p>
+  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div>${langSwitchHTML()}<h1>${tr("침묵의 자오선")}</h1><p class="sub">${tr("자정의 메아리")}</p><p class="period">${tr("202×년 7월 14일 ~ 9월 15일")}</p>
     <div class="stack"><button class="btn red" id="new" type="button">${tr("처음부터")}</button><button class="btn" id="cont" type="button" ${has && has.step > 0 ? "" : "disabled"}>${tr("이어하기")}</button><button class="btn" id="slots" type="button" ${anySlot() ? "" : "disabled"}>${tr("저장 슬롯에서 불러오기")}</button></div>
     <p class="tip">${tr("「물때」의 4년 뒤 이야기입니다. 1편을 먼저 하면 더 많은 것이 보입니다.")}<br>${tr("진행은 이 브라우저에 자동 저장됩니다. 소리가 납니다.")}<br>${tr("위험한 장면은 직접 보여 주지 않고 돌려서 표현합니다.")}</p></div>`;
   bindLangSwitch($("#app"), renderTitle);
@@ -2489,7 +2489,7 @@ function sha256(str) {
 function gate(start) {
   let ok = null; try { ok = localStorage.getItem(GATE_KEY); } catch (e) {}
   if (ok === GATE_HASH) return start();
-  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div>${langSwitchHTML()}<h1>${tr("물때")}<span>2</span></h1><p class="sub">${tr("죗값")}</p>
+  $("#app").innerHTML = `<div class="title-screen"><div class="title-bg">${titleSVG()}</div>${langSwitchHTML()}<h1>${tr("침묵의 자오선")}</h1><p class="sub">${tr("자정의 메아리")}</p>
     <form class="stack" id="gate" autocomplete="off"><div class="txtlock" style="width:min(320px,100%)"><input id="gate-pw" type="password" placeholder="${tr("임시 비밀번호")}" aria-label="${tr("임시 비밀번호")}" autocapitalize="off" spellcheck="false"></div><button class="btn red" type="submit">${tr("입장")}</button></form>
     <p class="tip" id="gate-msg">${tr("처음 실행하는 기기에서는 받은 임시 비밀번호가 필요합니다.")}<br>${tr("한 번 입력하면 이 브라우저에서는 다시 묻지 않습니다.")}</p></div>`;
   bindLangSwitch($("#app"), () => gate(start));
@@ -2556,7 +2556,7 @@ function fixLang(st) {
 }
 function applyLangChrome() {
   const h = document.documentElement; h.lang = LANG; h.classList.toggle("en", LANG === "en");
-  document.title = tr("물때 2");
+  document.title = tr("침묵의 자오선: 자정의 메아리");
 }
 function setLang(l) {
   if (l === LANG) return;
